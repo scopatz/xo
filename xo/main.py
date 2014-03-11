@@ -95,7 +95,7 @@ class LineWalker(urwid.ListWalker):
         expanded = next_line.expandtabs()
         
         edit = HighlightedEdit(caption="", edit_text=expanded, allow_tab=True,
-                               lexer=self.lexer)
+                               lexer=self.lexer, wrap='clip')
         edit.set_edit_pos(0)
         edit.original_text = next_line
         self.lines.append(edit)
@@ -130,7 +130,7 @@ class LineWalker(urwid.ListWalker):
         focus = self.lines[self.focus]
         pos = focus.edit_pos
         edit = HighlightedEdit(caption="", edit_text=focus.edit_text[pos:],
-                               allow_tab=True, lexer=self.lexer)
+                               allow_tab=True, lexer=self.lexer, wrap='clip')
         edit.original_text = ""
         focus.set_edit_text(focus.edit_text[:pos])
         edit.set_edit_pos(0)
@@ -166,8 +166,8 @@ class LineWalker(urwid.ListWalker):
 class EditDisplay(object):
     palette = [
         ('body','default', 'default'),
-        ('foot','dark cyan', 'dark blue', 'bold'),
-        ('key','light cyan', 'dark magenta', 'underline'),
+        ('foot','black', 'dark blue', 'bold'),
+        ('key','black', 'dark magenta', 'underline'),
         ]
         
     footer_text = ('foot', [
