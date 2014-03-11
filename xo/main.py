@@ -201,11 +201,9 @@ class EditDisplay(object):
             handle_mouse=False,
             unhandled_input=self.unhandled_keypress)
         loop.screen.set_terminal_properties(256)
-        #loop.screen.reset_default_terminal_palette()
         loop.screen.register_palette(self.palette)
         self.loop = loop
         self.loop.run()
-        #loop.reset_default_terminal_properties()
     
     def unhandled_keypress(self, k):
         """Last resort for keypresses."""
@@ -252,7 +250,6 @@ class EditDisplay(object):
             if edit.original_text.expandtabs() == edit.edit_text:
                 l.append(edit.original_text)
             else:
-                print("saving")
                 l.append(edit.edit_text)
         
         # then the rest
