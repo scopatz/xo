@@ -34,6 +34,11 @@ import sys
 
 import urwid
 
+class HighlightedEdit(urwid.Edit):
+
+    def get_text(self):
+        etext = self.get_edit_text()
+        return etext, [('key', 13)]
 
 class LineWalker(urwid.ListWalker):
     """ListWalker-compatible class for lazily reading file contents."""
@@ -70,7 +75,7 @@ class LineWalker(urwid.ListWalker):
 
         expanded = next_line.expandtabs()
         
-        edit = urwid.Edit("", expanded, allow_tab=True)
+        edit = HighlightedEdit("", expanded, allow_tab=True)
         edit.set_edit_pos(0)
         edit.original_text = next_line
         self.lines.append(edit)
@@ -104,7 +109,7 @@ class LineWalker(urwid.ListWalker):
         
         focus = self.lines[self.focus]
         pos = focus.edit_pos
-        edit = urwid.Edit("",focus.edit_text[pos:], allow_tab=True)
+        edit = HighlightedEdit("",focus.edit_text[pos:], allow_tab=True)
         edit.original_text = ""
         focus.set_edit_text(focus.edit_text[:pos])
         edit.set_edit_pos(0)
@@ -209,7 +214,8 @@ class EditDisplay:
             if edit.original_text.expandtabs() == edit.edit_text:
                 l.append(edit.original_text)
             else:
-                l.append(re_tab(edit.edit_text))
+                print("saving")
+                l.append(edit.edit_text)
         
         # then the rest
         while walk.file is not None:
