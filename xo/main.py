@@ -33,12 +33,15 @@ edit.py <filename>
 import sys
 
 import urwid
+from pygments.styles.tango import TangoStyle
+
+from colortrans import rgb2short
 
 class HighlightedEdit(urwid.Edit):
 
     def get_text(self):
         etext = self.get_edit_text()
-        return etext, [('key', 13)]
+        return etext, [('key', 1)]
 
 class LineWalker(urwid.ListWalker):
     """ListWalker-compatible class for lazily reading file contents."""
@@ -142,11 +145,11 @@ class LineWalker(urwid.ListWalker):
         del self.lines[self.focus+1]
 
 
-class EditDisplay:
+class EditDisplay(object):
     palette = [
         ('body','default', 'default'),
         ('foot','dark cyan', 'dark blue', 'bold'),
-        ('key','light cyan', 'dark blue', 'underline'),
+        ('key','light cyan', 'dark magenta', 'underline'),
         ]
         
     footer_text = ('foot', [
@@ -164,10 +167,26 @@ class EditDisplay:
         self.view = urwid.Frame(urwid.AttrWrap(self.listbox, 'body'),
             footer=self.footer)
 
+        default = 'default'
+        for tok, st in sorted(TangoStyle.styles.items()):
+            st = st.split()
+            st.sort()
+            c = 'default' if len(st) == 0 else 'h' + rgb2short(st[0][1:])[0]
+            a = urwid.AttrSpec(c, default, colors=256)
+            row = (tok, default, default, default, a.foreground, default)
+            self.palette.append(row)
+        print(self.palette, sys.stderr)
+
     def main(self):
-        self.loop = urwid.MainLoop(self.view, self.palette,
+        loop = urwid.MainLoop(self.view,
+            handle_mouse=False,
             unhandled_input=self.unhandled_keypress)
+        loop.screen.set_terminal_properties(256)
+        #loop.screen.reset_default_terminal_palette()
+        loop.screen.register_palette(self.palette)
+        self.loop = loop
         self.loop.run()
+        #loop.reset_default_terminal_properties()
     
     def unhandled_keypress(self, k):
         """Last resort for keypresses."""
