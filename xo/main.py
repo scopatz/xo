@@ -29,11 +29,11 @@ Usage:
 edit.py <filename>
 
 """
-
+import os
 import sys
 
 import urwid
-from pygments.lexers import guess_lexer, guess_lexer_for_filename
+from pygments.lexers import guess_lexer, guess_lexer_for_filename, get_lexer_by_name
 #from pygments.styles.tango import TangoStyle as S
 from pygments.styles.monokai import MonokaiStyle as S
 
@@ -59,7 +59,10 @@ class LineWalker(urwid.ListWalker):
     def __init__(self, name):
         self.name = name
         self.file = f = open(name)
-        self.lexer = guess_lexer_for_filename(name, f.readline())
+        try:
+            self.lexer = guess_lexer_for_filename(name, f.readline())
+        except TypeError:
+            self.lexer = get_lexer_by_name(os.path.splitext(name)[1][1:])
         f.seek(0)
         self.lines = []
         self.focus = 0
