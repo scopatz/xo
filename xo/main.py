@@ -33,19 +33,23 @@ edit.py <filename>
 import sys
 
 import urwid
-from pygments.lexers import PythonLexer
+from pygments.lexers import guess_lexer, guess_lexer_for_filename
 #from pygments.styles.tango import TangoStyle as S
 from pygments.styles.monokai import MonokaiStyle as S
 
 from colortrans import rgb2short
 
-LEXER = PythonLexer()
-
 class HighlightedEdit(urwid.Edit):
+
+    def __init__(self, lexer=None, **kwargs):
+        super().__init__(**kwargs)
+        if lexer is None:
+           lexer = guess_lexer(self.get_edit_text())
+        self.lexer = lexer
 
     def get_text(self):
         etext = self.get_edit_text()
-        tokens = LEXER.get_tokens(etext)
+        tokens = self.lexer.get_tokens(etext)
         attrib = [(tok, len(s)) for tok, s in tokens]
         return etext, attrib
 
@@ -53,7 +57,10 @@ class LineWalker(urwid.ListWalker):
     """ListWalker-compatible class for lazily reading file contents."""
     
     def __init__(self, name):
-        self.file = open(name)
+        self.name = name
+        self.file = f = open(name)
+        self.lexer = guess_lexer_for_filename(name, f.readline())
+        f.seek(0)
         self.lines = []
         self.focus = 0
     
@@ -84,7 +91,8 @@ class LineWalker(urwid.ListWalker):
 
         expanded = next_line.expandtabs()
         
-        edit = HighlightedEdit("", expanded, allow_tab=True)
+        edit = HighlightedEdit(caption="", edit_text=expanded, allow_tab=True,
+                               lexer=self.lexer)
         edit.set_edit_pos(0)
         edit.original_text = next_line
         self.lines.append(edit)
@@ -118,7 +126,8 @@ class LineWalker(urwid.ListWalker):
         
         focus = self.lines[self.focus]
         pos = focus.edit_pos
-        edit = HighlightedEdit("",focus.edit_text[pos:], allow_tab=True)
+        edit = HighlightedEdit(caption="", edit_text=focus.edit_text[pos:],
+                               allow_tab=True, lexer=self.lexer)
         edit.original_text = ""
         focus.set_edit_text(focus.edit_text[:pos])
         edit.set_edit_pos(0)
@@ -159,7 +168,7 @@ class EditDisplay(object):
         ]
         
     footer_text = ('foot', [
-        "Text Editor    ",
+        "xo ",
         ('key', "F5"), " save  ",
         ('key', "F8"), " quit",
         ])
@@ -174,7 +183,7 @@ class EditDisplay(object):
             footer=self.footer)
 
         default = 'default'
-        for tok, st in sorted(S.styles.items()):
+        for tok, st in S.styles.items():
             if '#' not in st:
                 st = ''
             st = st.split()
