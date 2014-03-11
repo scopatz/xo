@@ -33,15 +33,21 @@ edit.py <filename>
 import sys
 
 import urwid
-from pygments.styles.tango import TangoStyle
+from pygments.lexers import PythonLexer
+#from pygments.styles.tango import TangoStyle as S
+from pygments.styles.monokai import MonokaiStyle as S
 
 from colortrans import rgb2short
+
+LEXER = PythonLexer()
 
 class HighlightedEdit(urwid.Edit):
 
     def get_text(self):
         etext = self.get_edit_text()
-        return etext, [('key', 1)]
+        tokens = LEXER.get_tokens(etext)
+        attrib = [(tok, len(s)) for tok, s in tokens]
+        return etext, attrib
 
 class LineWalker(urwid.ListWalker):
     """ListWalker-compatible class for lazily reading file contents."""
@@ -168,14 +174,15 @@ class EditDisplay(object):
             footer=self.footer)
 
         default = 'default'
-        for tok, st in sorted(TangoStyle.styles.items()):
+        for tok, st in sorted(S.styles.items()):
+            if '#' not in st:
+                st = ''
             st = st.split()
             st.sort()
-            c = 'default' if len(st) == 0 else 'h' + rgb2short(st[0][1:])[0]
+            c = default if len(st) == 0 else 'h' + rgb2short(st[0][1:])[0]
             a = urwid.AttrSpec(c, default, colors=256)
             row = (tok, default, default, default, a.foreground, default)
             self.palette.append(row)
-        print(self.palette, sys.stderr)
 
     def main(self):
         loop = urwid.MainLoop(self.view,
