@@ -33,8 +33,9 @@ import os
 import sys
 
 import urwid
+import  pygments.util
 from pygments.lexers import guess_lexer, guess_lexer_for_filename, get_lexer_by_name
-#from pygments.styles.tango import TangoStyle as S
+from pygments.lexers.special import TextLexer
 from pygments.styles.monokai import MonokaiStyle as S
 
 from colortrans import rgb2short
@@ -63,6 +64,8 @@ class LineWalker(urwid.ListWalker):
             self.lexer = guess_lexer_for_filename(name, f.readline())
         except TypeError:
             self.lexer = get_lexer_by_name(os.path.splitext(name)[1][1:])
+        except pygments.util.ClassNotFound:
+            self.lexer = TextLexer()
         f.seek(0)
         self.lines = []
         self.focus = 0
@@ -167,10 +170,14 @@ class LineWalker(urwid.ListWalker):
         """Cuts the current line to the clipboard."""
         if self.clipboard is None:
            self.clipboard = []
-        self.clipboard.append(self.lines.pop(self.focus))
-        self.set_focus(self.focus)
+        focus = self.focus
+        self.clipboard.append(self.lines.pop(focus))
+        if focus == len(self.lines):
+           focus -= 1
+        self.set_focus(focus)
 
     def paste_from_clipboard(self):
+        """Insert lines from the clipboard at the current position."""
         cb = self.clipboard
         if cb is None:
             return
@@ -179,7 +186,11 @@ class LineWalker(urwid.ListWalker):
                                       allow_tab=True, lexer=self.lexer, wrap='clip')
             newline.original_text = ""
             self.lines.insert(self.focus, newline)
-        self.set_focus(self.focus)
+        self.set_focus(self.focus + len(cb))
+
+    def clear_clipboard(self):
+        """Removes the existing clipboard, destroying all lines in the process."""
+        self.clipboard = None
 
 class EditDisplay(object):
     palette = [
@@ -258,6 +269,8 @@ class EditDisplay(object):
             self.walker.cut_to_clipboard()
         elif k == "ctrl u":
             self.walker.paste_from_clipboard()
+        elif k == "ctrl t":
+            self.walker.clear_clipboard()
         else:
             return
         return True
