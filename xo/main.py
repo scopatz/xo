@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 #
 # Urwid example lazy text editor suitable for tabbed and format=flowed text
 #    Copyright (C) 2004-2009  Ian Ward
@@ -33,7 +33,7 @@ import os
 import sys
 
 import urwid
-import  pygments.util
+import pygments.util
 from pygments.lexers import guess_lexer, guess_lexer_for_filename, get_lexer_by_name
 from pygments.lexers.special import TextLexer
 from pygments.styles.monokai import MonokaiStyle as S
@@ -166,6 +166,14 @@ class LineWalker(urwid.ListWalker):
         focus.set_edit_text(focus.edit_text + below.edit_text)
         del self.lines[self.focus+1]
 
+    def get_coords(self):
+        """Returns the line / col position. These are 1-indexed."""
+        focus = self.focus
+        return focus + 1, self.lines[self.focus].edit_pos + 1
+
+    #
+    # Clipboard methods
+    #
     def cut_to_clipboard(self):
         """Cuts the current line to the clipboard."""
         if self.clipboard is None:
@@ -200,17 +208,18 @@ class EditDisplay(object):
         ]
         
     footer_text = ('foot', [
-        "xo ",
-        ('key', "^x"), " exit  ",
-        ('key', "^o"), " save",
+        "xo    ",
+        ('key', "^x"), " exit ",
+        ('key', "^o"), " save ",
+        "L:C"
         ])
     
     def __init__(self, name):
         self.save_name = name
+        self.disp_name = os.path.split(name)[1]
         self.walker = LineWalker(name) 
         self.listbox = urwid.ListBox(self.walker)
-        self.footer = urwid.AttrWrap(urwid.Text(self.footer_text),
-            "foot")
+        self.footer = urwid.AttrWrap(urwid.Text(self.footer_text), "foot")
         self.view = urwid.Frame(urwid.AttrWrap(self.listbox, 'body'),
             footer=self.footer)
         self.clipboard = None
@@ -234,12 +243,20 @@ class EditDisplay(object):
         loop.screen.register_palette(self.palette)
         self.loop = loop
         self.loop.run()
+
+    def reset_footer(self, status="xo    "):
+        ft = self.footer_text
+        ft[1][0] = status
+        ft[1][-1] = "{0}:{1[0]}:{1[1]}".format(self.disp_name, self.walker.get_coords())
+        self.footer.w.set_text(ft)
     
     def unhandled_keypress(self, k):
         """Last resort for keypresses."""
 
+        status = "xo    "
         if k == "ctrl o":
             self.save_file()
+            status = "saved "
         elif k == "ctrl x":
             raise urwid.ExitMainLoop()
         elif k == "delete":
@@ -272,7 +289,9 @@ class EditDisplay(object):
         elif k == "ctrl t":
             self.walker.clear_clipboard()
         else:
+            self.reset_footer()
             return
+        self.reset_footer(status=status)
         return True
             
 
