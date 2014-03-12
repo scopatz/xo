@@ -42,17 +42,12 @@ from colortrans import rgb2short
 
 class HighlightedEdit(urwid.Edit):
 
-    def __init__(self, lexer=None, callback=None, **kwargs):
+    def __init__(self, lexer=None, main_display=None, **kwargs):
         super().__init__(**kwargs)
         if lexer is None:
            lexer = guess_lexer(self.get_edit_text())
         self.lexer = lexer
-        self.callback = callback
-#        urwid.connect_signal(self, "change", self.callback)
-
-#    def __del__(self):
-#        urwid.disconnect_signal(self, "change", self.callback)
-#        super().__del__()
+        self.main_display = main_display
 
     def get_text(self):
         etext = self.get_edit_text()
@@ -60,13 +55,18 @@ class HighlightedEdit(urwid.Edit):
         attrib = [(tok, len(s)) for tok, s in tokens]
         return etext, attrib
 
+    def keypress(self, size, key):
+        rtn = super().keypress(size, key)
+        #print(key, file=sys.stderr)
+        if self.main_display is not None and key == "left" or key == "right":
+            self.main_display.reset_footer()
+        return rtn
 
 class LineWalker(urwid.ListWalker):
     """ListWalker-compatible class for lazily reading file contents."""
-
     signals = ["modified"]
     
-    def __init__(self, name, callback=(lambda:None)):
+    def __init__(self, name, main_display):
         self.name = name
         self.file = f = open(name)
         try:
@@ -79,8 +79,8 @@ class LineWalker(urwid.ListWalker):
         self.lines = []
         self.focus = 0
         self.clipboard = None
-        self.callback = callback
-    
+        self.main_display = main_display
+   
     def get_focus(self): 
         return self._get_at_pos(self.focus)
     
@@ -110,7 +110,7 @@ class LineWalker(urwid.ListWalker):
         expanded = next_line.expandtabs()
         
         edit = HighlightedEdit(caption="", edit_text=expanded, allow_tab=True,
-                               lexer=self.lexer, wrap='clip', callback=self.callback)
+                               lexer=self.lexer, wrap='clip', main_display=self.main_display)
         edit.set_edit_pos(0)
         edit.original_text = next_line
         self.lines.append(edit)
@@ -146,7 +146,7 @@ class LineWalker(urwid.ListWalker):
         pos = focus.edit_pos
         edit = HighlightedEdit(caption="", edit_text=focus.edit_text[pos:],
                                allow_tab=True, lexer=self.lexer, wrap='clip', 
-                               callback=self.callback)
+                               main_display=self.main_display)
         edit.original_text = ""
         focus.set_edit_text(focus.edit_text[:pos])
         edit.set_edit_pos(0)
@@ -181,7 +181,10 @@ class LineWalker(urwid.ListWalker):
     def get_coords(self):
         """Returns the line / col position. These are 1-indexed."""
         focus = self.focus
-        return focus + 1, self.lines[self.focus].edit_pos + 1
+        #return focus + 1, self.lines[self.focus].edit_pos + 1
+        z = self.lines[self.focus]
+        return focus + 1, (self.lines[self.focus].edit_pos or 0) + 1
+        #return focus + 1, self.cursor_col + 1
 
     #
     # Clipboard methods
@@ -203,8 +206,8 @@ class LineWalker(urwid.ListWalker):
             return
         for line in cb[::-1]:
             newline = HighlightedEdit(caption="", edit_text=line.get_edit_text(), 
-                                      allow_tab=True, lexer=self.lexer, wrap='clip', 
-                                      callback=self.callback)
+                                      allow_tab=True, lexer=self.lexer, wrap='clip',
+                                      main_display=self.main_display)
             newline.original_text = ""
             self.lines.insert(self.focus, newline)
         self.set_focus(self.focus + len(cb))
@@ -230,7 +233,7 @@ class EditDisplay(object):
     def __init__(self, name):
         self.save_name = name
         self.disp_name = os.path.split(name)[1]
-        self.walker = LineWalker(name, callback=self.reset_footer) 
+        self.walker = LineWalker(name, main_display=self) 
         urwid.connect_signal(self.walker, 'modified', self.reset_footer)
         self.listbox = urwid.ListBox(self.walker)
         self.footer = urwid.AttrWrap(urwid.Text(self.footer_text), "foot")
@@ -260,8 +263,10 @@ class EditDisplay(object):
 
     def reset_footer(self, status="xo    ", *args, **kwargs):
         ft = self.footer_text
+        #y, x = self.listbox.get_cursor_coords((len(self.walker.lines), 1000000))
         ft[1][0] = status
         ft[1][-1] = "{0}:{1[0]}:{1[1]}".format(self.disp_name, self.walker.get_coords())
+        #ft[1][-1] = "{0}:{1}:{2}".format(self.disp_name, x + 1, y + 1)
         self.footer.w.set_text(ft)
     
     def unhandled_keypress(self, k):
