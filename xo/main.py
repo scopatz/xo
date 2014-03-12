@@ -66,6 +66,7 @@ class LineWalker(urwid.ListWalker):
         f.seek(0)
         self.lines = []
         self.focus = 0
+        self.clipboard = None
     
     def get_focus(self): 
         return self._get_at_pos(self.focus)
@@ -162,6 +163,21 @@ class LineWalker(urwid.ListWalker):
         focus.set_edit_text(focus.edit_text + below.edit_text)
         del self.lines[self.focus+1]
 
+    def cut_to_clipboard(self):
+        """Cuts the current line to the clipboard."""
+        if self.clipboard is None:
+           self.clipboard = []
+        self.clipboard.append(self.lines.pop(self.focus))
+
+    def paste_from_clipboard(self):
+        cb = self.clipboard
+        if cb is None:
+            return
+        for line in cb[::-1]:
+            newline = HighlightedEdit(caption="", edit_text=line.get_edit_text(), 
+                                      allow_tab=True, lexer=self.lexer, wrap='clip')
+            newline.original_text = ""
+            self.lines.insert(self.focus, newline)
 
 class EditDisplay(object):
     palette = [
@@ -172,8 +188,8 @@ class EditDisplay(object):
         
     footer_text = ('foot', [
         "xo ",
-        ('key', "F5"), " save  ",
-        ('key', "F8"), " quit",
+        ('key', "^x"), " exit  ",
+        ('key', "^o"), " save",
         ])
     
     def __init__(self, name):
@@ -184,6 +200,7 @@ class EditDisplay(object):
             "foot")
         self.view = urwid.Frame(urwid.AttrWrap(self.listbox, 'body'),
             footer=self.footer)
+        self.clipboard = None
 
         default = 'default'
         for tok, st in S.styles.items():
@@ -208,9 +225,9 @@ class EditDisplay(object):
     def unhandled_keypress(self, k):
         """Last resort for keypresses."""
 
-        if k == "f5":
+        if k == "ctrl o":
             self.save_file()
-        elif k == "f8":
+        elif k == "ctrl x":
             raise urwid.ExitMainLoop()
         elif k == "delete":
             # delete at end of line
@@ -235,6 +252,10 @@ class EditDisplay(object):
             if w:
                 self.listbox.set_focus(pos, 'below')
                 self.loop.process_input(["end"])
+        elif k == "ctrl k":
+            self.walker.cut_to_clipboard()
+        elif k == "ctrl u":
+            self.walker.paste_from_clipboard()
         else:
             return
         return True
