@@ -227,12 +227,12 @@ class EditDisplay(object):
         "xo    ",
         ('key', "^x"), " exit ",
         ('key', "^o"), " save ",
-        "L:C"
+        ""
         ])
     
     def __init__(self, name):
         self.save_name = name
-        self.disp_name = os.path.split(name)[1]
+        #self.disp_name = os.path.split(name)[1]
         self.walker = LineWalker(name, main_display=self) 
         urwid.connect_signal(self.walker, 'modified', self.reset_footer)
         self.listbox = urwid.ListBox(self.walker)
@@ -262,11 +262,11 @@ class EditDisplay(object):
         self.loop.run()
 
     def reset_footer(self, status="xo    ", *args, **kwargs):
+        ncol, nrow = self.loop.screen.get_cols_rows()
         ft = self.footer_text
-        #y, x = self.listbox.get_cursor_coords((len(self.walker.lines), 1000000))
         ft[1][0] = status
-        ft[1][-1] = "{0}:{1[0]}:{1[1]}".format(self.disp_name, self.walker.get_coords())
-        #ft[1][-1] = "{0}:{1}:{2}".format(self.disp_name, x + 1, y + 1)
+        flc = "{0}:{1[0]}:{1[1]}".format(self.save_name, self.walker.get_coords())
+        ft[1][-1] = "{0: >{1}}".format(flc, max(ncol - 22, 0))
         self.footer.w.set_text(ft)
     
     def unhandled_keypress(self, k):
