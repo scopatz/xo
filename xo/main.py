@@ -168,6 +168,7 @@ class LineWalker(urwid.ListWalker):
         if self.clipboard is None:
            self.clipboard = []
         self.clipboard.append(self.lines.pop(self.focus))
+        self.set_focus(self.focus)
 
     def paste_from_clipboard(self):
         cb = self.clipboard
@@ -178,6 +179,7 @@ class LineWalker(urwid.ListWalker):
                                       allow_tab=True, lexer=self.lexer, wrap='clip')
             newline.original_text = ""
             self.lines.insert(self.focus, newline)
+        self.set_focus(self.focus)
 
 class EditDisplay(object):
     palette = [
