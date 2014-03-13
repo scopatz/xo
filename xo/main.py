@@ -13,6 +13,8 @@ from pygments.styles.monokai import MonokaiStyle as S
 
 from colortrans import rgb2short
 
+RE_WORD = re.compile(r'\w+')
+RE_NOT_WORD = re.compile(r'\W+')
 RE_NOT_SPACE = re.compile(r'\S')
 
 class LineEditor(urwid.Edit):
@@ -42,6 +44,8 @@ class LineEditor(urwid.Edit):
             i = 0 if i == orig_pos else i
             self.set_edit_pos(i)
             self.main_display.reset_footer()
+        elif key == "ctrl left" or key == "ctrl right":
+            self.main_display.reset_footer(status=key)
         return rtn
 
 class LineWalker(urwid.ListWalker):
@@ -287,6 +291,18 @@ class MainDisplay(object):
         elif k == "ctrl t":
             self.walker.clear_clipboard()
             status = "cleared "
+        elif k == "ctrl left":
+            w, ypos = self.walker.get_focus()
+            xpos = w.edit_pos
+            starts = [m.start() for m in RE_WORD.finditer(w.edit_text or "", 0, xpos)]
+            word_pos = xpos if len(starts) == 0 else starts[-1]
+            w.set_edit_pos(word_pos)
+        elif k == "ctrl right":
+            w, ypos = self.walker.get_focus()
+            xpos = w.edit_pos
+            m = RE_NOT_WORD.search(w.edit_text or "", xpos)
+            word_pos = xpos if m is None else m.end()
+            w.set_edit_pos(word_pos)
         else:
             self.reset_footer()
             return
