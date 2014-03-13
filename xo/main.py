@@ -2,6 +2,7 @@
 """exofrills: your text has been edited...but you are still hungry.
 """
 import os
+import re
 import sys
 
 import urwid
@@ -12,14 +13,17 @@ from pygments.styles.monokai import MonokaiStyle as S
 
 from colortrans import rgb2short
 
+RE_NOT_SPACE = re.compile(r'\S')
+
 class LineEditor(urwid.Edit):
 
-    def __init__(self, lexer=None, main_display=None, **kwargs):
+    def __init__(self, lexer=None, main_display=None, smart_home=True, **kwargs):
         super().__init__(**kwargs)
         if lexer is None:
            lexer = guess_lexer(self.get_edit_text())
         self.lexer = lexer
         self.main_display = main_display
+        self.smart_home = smart_home
 
     def get_text(self):
         etext = self.get_edit_text()
@@ -28,11 +32,16 @@ class LineEditor(urwid.Edit):
         return etext, attrib
 
     def keypress(self, size, key):
+        orig_pos = self.edit_pos
         rtn = super().keypress(size, key)
         if key == "left" or key == "right":
             self.main_display.reset_footer()
-        elif key == "home" or key == "end":
-            self.main_display.reset_footer(status=key)
+        elif self.smart_home and key == "home":
+            m = RE_NOT_SPACE.search(self.edit_text or "")
+            i = 0 if m is None else m.start()
+            i = 0 if i == orig_pos else i
+            self.set_edit_pos(i)
+            self.main_display.reset_footer()
         return rtn
 
 class LineWalker(urwid.ListWalker):
@@ -58,7 +67,7 @@ class LineWalker(urwid.ListWalker):
         self.lexer = lexer
         self.main_display = main_display
         self.line_kwargs = dict(caption="", allow_tab=True, lexer=lexer, 
-                                wrap='clip', main_display=main_display)
+                                wrap='clip', main_display=main_display, smart_home=True)
    
     def get_focus(self): 
         return self._get_at_pos(self.focus)
