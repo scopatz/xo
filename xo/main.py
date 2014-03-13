@@ -57,7 +57,6 @@ class HighlightedEdit(urwid.Edit):
 
     def keypress(self, size, key):
         rtn = super().keypress(size, key)
-        #print(key, file=sys.stderr)
         if self.main_display is not None and key == "left" or key == "right":
             self.main_display.reset_footer()
         return rtn
@@ -82,6 +81,7 @@ class LineWalker(urwid.ListWalker):
         self.lines = []
         self.focus = 0
         self.clipboard = None
+        self.clipboard_pos = None
         self.main_display = main_display
    
     def get_focus(self): 
@@ -157,7 +157,6 @@ class LineWalker(urwid.ListWalker):
 
     def combine_focus_with_prev(self):
         """Combine the focus edit widget with the one above."""
-
         above, ignore = self.get_prev(self.focus)
         if above is None:
             # already at the top
@@ -171,7 +170,6 @@ class LineWalker(urwid.ListWalker):
 
     def combine_focus_with_next(self):
         """Combine the focus edit widget with the one below."""
-
         below, ignore = self.get_next(self.focus)
         if below is None:
             # already at bottom
@@ -194,12 +192,14 @@ class LineWalker(urwid.ListWalker):
     #
     def cut_to_clipboard(self):
         """Cuts the current line to the clipboard."""
-        if self.clipboard is None:
-           self.clipboard = []
         focus = self.focus
+        if focus + 1 == len(self.lines):
+           return  # don't cut last line
+        if (self.clipboard is None) or (self.clipboard_pos is None) or \
+           (focus != self.clipboard_pos):
+            self.clipboard = []
         self.clipboard.append(self.lines.pop(focus))
-        if focus == len(self.lines):
-           focus -= 1
+        self.clipboard_pos = focus
         self.set_focus(focus)
 
     def paste_from_clipboard(self):
@@ -217,7 +217,7 @@ class LineWalker(urwid.ListWalker):
 
     def clear_clipboard(self):
         """Removes the existing clipboard, destroying all lines in the process."""
-        self.clipboard = None
+        self.clipboard = self.clipboard_pos = None
 
 class EditDisplay(object):
     palette = [
@@ -367,7 +367,6 @@ def main():
         sys.stderr.write(__doc__)
         return
     EditDisplay(name).main()
-    
 
 if __name__=="__main__": 
     main()
