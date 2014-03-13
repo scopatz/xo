@@ -3,7 +3,9 @@
 """
 import os
 import re
+import io
 import sys
+from argparse import ArgumentParser
 
 import urwid
 import pygments.util
@@ -163,11 +165,19 @@ class LineWalker(urwid.ListWalker):
         focus.set_edit_text(focus.edit_text + below.edit_text)
         del self.lines[self.focus+1]
 
+    #
+    # Some nice functions
+    #
     def get_coords(self):
-        """Returns the line / col position. These are 1-indexed."""
+        """Returns the line & col position. These are 1-indexed."""
         focus = self.focus
-        z = self.lines[self.focus]
-        return focus + 1, (self.lines[self.focus].edit_pos or 0) + 1
+        return focus + 1, (self.lines[focus].edit_pos or 0) + 1
+
+    def goto(self, lineno, col):
+        """Jumps to a specific line & column.  These are 1-indexed."""
+        focus = lineno - 1
+        self.lines[focus].set_edit_pos(col - 1)
+        self.set_focus(focus)
 
     #
     # Clipboard methods
@@ -350,14 +360,20 @@ def re_tab(s):
         l.append(s[p:])
         return "".join(l)
 
+def touch(filename):
+    """Opens a file and updates the mtime, like the posix command of the same name."""
+    with io.open(filename, 'a') as f:
+        os.utime(filename, None)
+
 def main():
-    try:
-        name = sys.argv[1]
-        assert open(name, "a")
-    except:
-        sys.stderr.write(__doc__)
-        return
-    MainDisplay(name).main()
+    parser = ArgumentParser(prog='xo', description=__doc__)
+    parser.add_argument('path', help="path to file")
+    ns = parser.parse_args()
+    if not os.path.exists(ns.path):
+        touch(ns.path)
+    elif os.path.isdir(ns.path):
+        sys.exit("Error: may not open directory {0!r}".format(ns.path))
+    MainDisplay(ns.path).main()
 
 if __name__=="__main__": 
     main()
