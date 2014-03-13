@@ -46,8 +46,6 @@ class LineEditor(urwid.Edit):
             i = 0 if i == orig_pos else i
             self.set_edit_pos(i)
             self.main_display.reset_footer()
-        elif key == "ctrl left" or key == "ctrl right":
-            self.main_display.reset_footer(status=key)
         return rtn
 
 class LineWalker(urwid.ListWalker):
@@ -175,7 +173,8 @@ class LineWalker(urwid.ListWalker):
 
     def goto(self, lineno, col):
         """Jumps to a specific line & column.  These are 1-indexed."""
-        focus = lineno - 1
+        focus = min(lineno, len(self.lines)) - 1
+        print(focus, file=sys.stderr)
         self.lines[focus].set_edit_pos(col - 1)
         self.set_focus(focus)
 
@@ -243,13 +242,14 @@ class MainDisplay(object):
             row = (tok, default, default, default, a.foreground, default)
             self.palette.append(row)
 
-    def main(self):
+    def main(self, line=1, col=1):
         loop = urwid.MainLoop(self.view,
             handle_mouse=False,
             unhandled_input=self.unhandled_keypress)
         loop.screen.set_terminal_properties(256)
         loop.screen.register_palette(self.palette)
         self.loop = loop
+        #self.walker.goto(line, col)
         self.loop.run()
 
     def reset_footer(self, status="xo      ", *args, **kwargs):
@@ -365,15 +365,24 @@ def touch(filename):
     with io.open(filename, 'a') as f:
         os.utime(filename, None)
 
+def path_line_col(x):
+    plc = x.rsplit(':', 2)
+    plc += [1] * (3 - len(plc))
+    return plc[0], int(plc[1] or 1), int(plc[2] or 1)
+
 def main():
     parser = ArgumentParser(prog='xo', description=__doc__)
     parser.add_argument('path', help="path to file")
     ns = parser.parse_args()
-    if not os.path.exists(ns.path):
-        touch(ns.path)
-    elif os.path.isdir(ns.path):
-        sys.exit("Error: may not open directory {0!r}".format(ns.path))
-    MainDisplay(ns.path).main()
+    path, line, col = path_line_col(ns.path)
+    if not os.path.exists(path):
+        touch(path)
+    elif os.path.isdir(path):
+        sys.exit("Error: may not open directory {0!r}".format(path))
+    main_display = MainDisplay(path)
+    print(path, line, col, file=sys.stderr)
+    main_display.main()
+    main_display.walker.goto(line, col)
 
 if __name__=="__main__": 
     main()
