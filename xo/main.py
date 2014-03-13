@@ -1,33 +1,5 @@
 #!/usr/bin/env python3
-#
-# Urwid example lazy text editor suitable for tabbed and format=flowed text
-#    Copyright (C) 2004-2009  Ian Ward
-#
-#    This library is free software; you can redistribute it and/or
-#    modify it under the terms of the GNU Lesser General Public
-#    License as published by the Free Software Foundation; either
-#    version 2.1 of the License, or (at your option) any later version.
-#
-#    This library is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-#    Lesser General Public License for more details.
-#
-#    You should have received a copy of the GNU Lesser General Public
-#    License along with this library; if not, write to the Free Software
-#    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-#
-# Urwid web site: http://excess.org/urwid/
-
-"""
-Urwid example lazy text editor suitable for tabbed and flowing text
-
-Features:
-- custom list walker for lazily loading text file
-
-Usage:
-edit.py <filename>
-
+"""exofrills: your text has been edited...but you are still hungry.
 """
 import os
 import sys
@@ -59,11 +31,12 @@ class HighlightedEdit(urwid.Edit):
         rtn = super().keypress(size, key)
         if self.main_display is not None and key == "left" or key == "right":
             self.main_display.reset_footer()
+        elif self.main_display is not None and key == "home" or key == "end":
+            self.main_display.reset_footer(status=key)
         return rtn
 
 class LineWalker(urwid.ListWalker):
     """ListWalker-compatible class for lazily reading file contents."""
-    signals = ["modified"]
     
     def __init__(self, name, main_display):
         self.name = name
@@ -90,7 +63,7 @@ class LineWalker(urwid.ListWalker):
     def set_focus(self, focus):
         self.focus = focus
         self._modified()
-        urwid.emit_signal(self, "modified")
+        self.main_display.reset_footer()
     
     def get_next(self, start_from):
         return self._get_at_pos(start_from + 1)
@@ -219,7 +192,7 @@ class LineWalker(urwid.ListWalker):
         """Removes the existing clipboard, destroying all lines in the process."""
         self.clipboard = self.clipboard_pos = None
 
-class EditDisplay(object):
+class MainDisplay(object):
     palette = [
         ('body','default', 'default'),
         ('foot','black', 'dark blue', 'bold'),
@@ -235,9 +208,7 @@ class EditDisplay(object):
     
     def __init__(self, name):
         self.save_name = name
-        #self.disp_name = os.path.split(name)[1]
         self.walker = LineWalker(name, main_display=self) 
-        urwid.connect_signal(self.walker, 'modified', self.reset_footer)
         self.listbox = urwid.ListBox(self.walker)
         self.footer = urwid.AttrWrap(urwid.Text(self.footer_text), "foot")
         self.view = urwid.Frame(urwid.AttrWrap(self.listbox, 'body'),
@@ -369,7 +340,7 @@ def main():
     except:
         sys.stderr.write(__doc__)
         return
-    EditDisplay(name).main()
+    MainDisplay(name).main()
 
 if __name__=="__main__": 
     main()
