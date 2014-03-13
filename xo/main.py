@@ -12,7 +12,7 @@ from pygments.styles.monokai import MonokaiStyle as S
 
 from colortrans import rgb2short
 
-class HighlightedEdit(urwid.Edit):
+class LineEditor(urwid.Edit):
 
     def __init__(self, lexer=None, main_display=None, **kwargs):
         super().__init__(**kwargs)
@@ -29,9 +29,9 @@ class HighlightedEdit(urwid.Edit):
 
     def keypress(self, size, key):
         rtn = super().keypress(size, key)
-        if self.main_display is not None and key == "left" or key == "right":
+        if key == "left" or key == "right":
             self.main_display.reset_footer()
-        elif self.main_display is not None and key == "home" or key == "end":
+        elif key == "home" or key == "end":
             self.main_display.reset_footer(status=key)
         return rtn
 
@@ -42,20 +42,23 @@ class LineWalker(urwid.ListWalker):
         self.name = name
         self.file = f = open(name)
         try:
-            self.lexer = guess_lexer_for_filename(name, f.readline())
+            lexer = guess_lexer_for_filename(name, f.readline())
         except TypeError:
             try:
-                self.lexer = get_lexer_by_name(os.path.splitext(name)[1][1:])
+                lexer = get_lexer_by_name(os.path.splitext(name)[1][1:])
             except pygments.util.ClassNotFound:
-                self.lexer = TextLexer()
+                lexer = TextLexer()
         except pygments.util.ClassNotFound:
-            self.lexer = TextLexer()
+            lexer = TextLexer()
         f.seek(0)
         self.lines = []
         self.focus = 0
         self.clipboard = None
         self.clipboard_pos = None
+        self.lexer = lexer
         self.main_display = main_display
+        self.line_kwargs = dict(caption="", allow_tab=True, lexer=lexer, 
+                                wrap='clip', main_display=main_display)
    
     def get_focus(self): 
         return self._get_at_pos(self.focus)
@@ -85,8 +88,7 @@ class LineWalker(urwid.ListWalker):
 
         expanded = next_line.expandtabs()
         
-        edit = HighlightedEdit(caption="", edit_text=expanded, allow_tab=True,
-                               lexer=self.lexer, wrap='clip', main_display=self.main_display)
+        edit = LineEditor(edit_text=expanded, **self.line_kwargs)
         edit.set_edit_pos(0)
         edit.original_text = next_line
         self.lines.append(edit)
@@ -120,9 +122,7 @@ class LineWalker(urwid.ListWalker):
         
         focus = self.lines[self.focus]
         pos = focus.edit_pos
-        edit = HighlightedEdit(caption="", edit_text=focus.edit_text[pos:],
-                               allow_tab=True, lexer=self.lexer, wrap='clip', 
-                               main_display=self.main_display)
+        edit = LineEditor(edit_text=focus.edit_text[pos:], **self.line_kwargs)
         edit.original_text = ""
         focus.set_edit_text(focus.edit_text[:pos])
         edit.set_edit_pos(0)
@@ -132,8 +132,7 @@ class LineWalker(urwid.ListWalker):
         """Combine the focus edit widget with the one above."""
         above, ignore = self.get_prev(self.focus)
         if above is None:
-            # already at the top
-            return
+            return  # already at the top
         
         focus = self.lines[self.focus]
         above.set_edit_pos(len(above.edit_text))
@@ -145,8 +144,7 @@ class LineWalker(urwid.ListWalker):
         """Combine the focus edit widget with the one below."""
         below, ignore = self.get_next(self.focus)
         if below is None:
-            # already at bottom
-            return
+            return  # already at bottom
         
         focus = self.lines[self.focus]
         focus.set_edit_text(focus.edit_text + below.edit_text)
@@ -155,10 +153,8 @@ class LineWalker(urwid.ListWalker):
     def get_coords(self):
         """Returns the line / col position. These are 1-indexed."""
         focus = self.focus
-        #return focus + 1, self.lines[self.focus].edit_pos + 1
         z = self.lines[self.focus]
         return focus + 1, (self.lines[self.focus].edit_pos or 0) + 1
-        #return focus + 1, self.cursor_col + 1
 
     #
     # Clipboard methods
@@ -181,9 +177,7 @@ class LineWalker(urwid.ListWalker):
         if cb is None:
             return
         for line in cb[::-1]:
-            newline = HighlightedEdit(caption="", edit_text=line.get_edit_text(), 
-                                      allow_tab=True, lexer=self.lexer, wrap='clip',
-                                      main_display=self.main_display)
+            newline = LineEditor(edit_text=line.get_edit_text(), **self.line_kwargs)
             newline.original_text = ""
             self.lines.insert(self.focus, newline)
         self.set_focus(self.focus + len(cb))
@@ -331,8 +325,6 @@ def re_tab(s):
         l.append(s[p:])
         return "".join(l)
 
-
-
 def main():
     try:
         name = sys.argv[1]
@@ -344,4 +336,3 @@ def main():
 
 if __name__=="__main__": 
     main()
-    #print("\r\b\r", end="")
