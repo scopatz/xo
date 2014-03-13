@@ -301,16 +301,18 @@ class MainDisplay(object):
         elif k == "ctrl t":
             self.walker.clear_clipboard()
             status = "cleared "
-        elif k == "ctrl left":
+        elif k == "ctrl left" or k == "meta left":
             w, ypos = self.walker.get_focus()
             xpos = w.edit_pos
-            starts = [m.start() for m in RE_WORD.finditer(w.edit_text or "", 0, xpos)]
+            re_word = RE_WORD if k == "ctrl left" else RE_NOT_WORD
+            starts = [m.start() for m in re_word.finditer(w.edit_text or "", 0, xpos)]
             word_pos = xpos if len(starts) == 0 else starts[-1]
             w.set_edit_pos(word_pos)
-        elif k == "ctrl right":
+        elif k == "ctrl right" or k == "meta right":
             w, ypos = self.walker.get_focus()
             xpos = w.edit_pos
-            m = RE_NOT_WORD.search(w.edit_text or "", xpos)
+            re_word = RE_WORD if k == "meta right" else RE_NOT_WORD
+            m = re_word.search(w.edit_text or "", xpos)
             word_pos = xpos if m is None else m.end()
             w.set_edit_pos(word_pos)
         else:
@@ -380,7 +382,7 @@ def main():
     elif os.path.isdir(path):
         sys.exit("Error: may not open directory {0!r}".format(path))
     main_display = MainDisplay(path)
-    print(path, line, col, file=sys.stderr)
+    #print(path, line, col, file=sys.stderr)
     main_display.main()
     main_display.walker.goto(line, col)
 
