@@ -72,7 +72,10 @@ class LineWalker(urwid.ListWalker):
         try:
             self.lexer = guess_lexer_for_filename(name, f.readline())
         except TypeError:
-            self.lexer = get_lexer_by_name(os.path.splitext(name)[1][1:])
+            try:
+                self.lexer = get_lexer_by_name(os.path.splitext(name)[1][1:])
+            except pygments.util.ClassNotFound:
+                self.lexer = TextLexer()
         except pygments.util.ClassNotFound:
             self.lexer = TextLexer()
         f.seek(0)
@@ -368,3 +371,4 @@ def main():
 
 if __name__=="__main__": 
     main()
+    #print("\r\b\r", end="")
