@@ -264,21 +264,21 @@ class EditDisplay(object):
         self.loop = loop
         self.loop.run()
 
-    def reset_footer(self, status="xo    ", *args, **kwargs):
+    def reset_footer(self, status="xo      ", *args, **kwargs):
         ncol, nrow = self.loop.screen.get_cols_rows()
         ft = self.footer_text
         ft[1][0] = status
         flc = "{0}:{1[0]}:{1[1]}".format(self.save_name, self.walker.get_coords())
-        ft[1][-1] = "{0: >{1}}".format(flc, max(ncol - 22, 0))
+        ft[1][-1] = "{0: >{1}}".format(flc, max(ncol - 24, 0))
         self.footer.w.set_text(ft)
     
     def unhandled_keypress(self, k):
         """Last resort for keypresses."""
 
-        status = "xo    "
+        status = "xo      "
         if k == "ctrl o":
             self.save_file()
-            status = "saved "
+            status = "saved   "
         elif k == "ctrl x":
             raise urwid.ExitMainLoop()
         elif k == "delete":
@@ -306,10 +306,13 @@ class EditDisplay(object):
                 self.loop.process_input(["end"])
         elif k == "ctrl k":
             self.walker.cut_to_clipboard()
+            status = "cut     "
         elif k == "ctrl u":
             self.walker.paste_from_clipboard()
+            status = "pasted  "
         elif k == "ctrl t":
             self.walker.clear_clipboard()
+            status = "cleared "
         else:
             self.reset_footer()
             return
