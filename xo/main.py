@@ -11,6 +11,7 @@ import urwid
 import pygments.util
 from pygments.lexers import guess_lexer, guess_lexer_for_filename, get_lexer_by_name
 from pygments.lexers.special import TextLexer
+from pygments.filter import Filter
 from pygments.styles.monokai import MonokaiStyle as S
 
 from colortrans import rgb2short
@@ -18,6 +19,13 @@ from colortrans import rgb2short
 RE_WORD = re.compile(r'\w+')
 RE_NOT_WORD = re.compile(r'\W+')
 RE_NOT_SPACE = re.compile(r'\S')
+
+class NonEmptyFilter(Filter):
+    """Ensures that a token has len > 0."""
+    def filter(self, lexer, stream):
+        for ttype, value in stream:
+            if len(value) > 0:
+                yield ttype, value
 
 class LineEditor(urwid.Edit):
 
@@ -63,6 +71,9 @@ class LineWalker(urwid.ListWalker):
                 lexer = TextLexer()
         except pygments.util.ClassNotFound:
             lexer = TextLexer()
+        lexer.add_filter(NonEmptyFilter())
+        lexer.add_filter('tokenmerge')
+        #print(lexer, file=sys.stderr)
         f.seek(0)
         self.lines = []
         self.focus = 0
