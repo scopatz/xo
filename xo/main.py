@@ -234,7 +234,7 @@ class LineWalker(urwid.ListWalker):
             # search down the lines
             last_pos = curr_pos
             w, curr_pos = self.get_next(curr_pos)
-            m = q.search(w.get_edit_text())
+            m = q.search(w.get_edit_text(), w.edit_pos+1 if curr_pos == orig_pos else 0)
         if m is None:
            curr_pos = 0  # start from the top
         while m is None and curr_pos < orig_pos:
