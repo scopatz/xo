@@ -336,15 +336,18 @@ class MainDisplay(object):
         self.queries = deque(maxlen=128)
 
     def register_palette(self, style_class):
+        """Converts pygmets style to urwid palatte"""
         default = 'default'
         palette = list(self.base_palette)
         for tok, st in style_class.styles.items():
             if '#' not in st:
                 st = ''
             st = st.split()
-            st.sort()
+            st.sort()   # '#' comes before '[A-Za-z0-9]'
             if len(st) == 0: 
                 c = default 
+            elif st[0].startswith('bg:'):
+                c = default
             elif len(st[0]) == 7:
                 c = 'h' + rgb2short(st[0][1:])[0]
             elif len(st[0]) == 4:
