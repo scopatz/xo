@@ -21,7 +21,7 @@ RE_NOT_WORD = re.compile(r'\W+')
 RE_NOT_SPACE = re.compile(r'\S')
 
 class NonEmptyFilter(Filter):
-    """Ensures that a token has len > 0."""
+    """Ensures that tokens have len > 0."""
     def filter(self, lexer, stream):
         for ttype, value in stream:
             if len(value) > 0:
@@ -73,7 +73,6 @@ class LineWalker(urwid.ListWalker):
             lexer = TextLexer()
         lexer.add_filter(NonEmptyFilter())
         lexer.add_filter('tokenmerge')
-        #print(lexer, file=sys.stderr)
         f.seek(0)
         self.lines = []
         self.focus = 0
@@ -135,9 +134,10 @@ class LineWalker(urwid.ListWalker):
             # file is closed, so there are no more lines
             return None, None
 
-        assert pos == len(self.lines), "out of order request?"
-
-        self.read_next_line()
+        #assert pos == len(self.lines), "out of order request?"
+        #self.read_next_line()
+        while pos >= len(self.lines):
+            self.read_next_line()
         
         return self.lines[-1], pos
     
@@ -184,8 +184,10 @@ class LineWalker(urwid.ListWalker):
 
     def goto(self, lineno, col):
         """Jumps to a specific line & column.  These are 1-indexed."""
+        next_line = ""
+        while lineno >= len(self.lines) and next_line is not None:
+            next_line = self.read_next_line()
         focus = min(lineno, len(self.lines)) - 1
-        print(focus, file=sys.stderr)
         self.lines[focus].set_edit_pos(col - 1)
         self.set_focus(focus)
 
@@ -260,7 +262,7 @@ class MainDisplay(object):
         loop.screen.set_terminal_properties(256)
         loop.screen.register_palette(self.palette)
         self.loop = loop
-        #self.walker.goto(line, col)
+        self.walker.goto(line, col)
         self.loop.run()
 
     def reset_footer(self, status="xo      ", *args, **kwargs):
@@ -393,9 +395,7 @@ def main():
     elif os.path.isdir(path):
         sys.exit("Error: may not open directory {0!r}".format(path))
     main_display = MainDisplay(path)
-    #print(path, line, col, file=sys.stderr)
-    main_display.main()
-    main_display.walker.goto(line, col)
+    main_display.main(line, col)
 
 if __name__=="__main__": 
     main()
