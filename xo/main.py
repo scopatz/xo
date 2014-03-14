@@ -20,6 +20,7 @@ import os
 import re
 import io
 import sys
+from glob import glob
 from collections import deque
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 
@@ -127,6 +128,38 @@ class StyleSelectorEditor(urwid.Edit):
         except pygments.util.ClassNotFound:
             return "bad sty "
         main_display.register_palette(s)
+
+class FileSelectorEditor(urwid.Edit):
+    """Editor to select file from filesystem."""
+
+    def filename(self):
+        return os.path.expandvars(os.path.expanduser(self.edit_text.strip()))
+
+    def run(self, main_display):
+        fname = self.filename()
+        if os.path.isdir(fname):
+            return "is dir! "
+        elif not os.path.exists(fname):
+            return "no file "
+        main_display.load_file(fname)
+
+    def keypress(self, size, key):
+        orig_pos = self.edit_pos
+        rtn = super().keypress(size, key)
+        if key == "tab":
+            fname = self.filename()
+            globbed = glob(fname + '*')
+            common = os.path.commonprefix(globbed)
+            if len(common) > 0:
+                self.set_edit_text(common)
+                self.set_edit_pos(len(common))
+                common_globbed = glob(common + "*")
+                if len(common_globbed) > 1:
+                    cap = "{0}\nread in file: ".format(" ".join(common_globbed))
+                    self.set_caption(cap)
+                else:
+                    self.set_caption("read in file: ")
+        return rtn
 
 class LineWalker(urwid.ListWalker):
     """ListWalker-compatible class for lazily reading file contents."""
@@ -377,6 +410,9 @@ class MainDisplay(object):
             stat = self.walker.seek_match(self.queries[-1])
         return stat
 
+    def load_file(self, fname):
+        pass
+
     def reset_status(self, status="xo      ", *args, **kwargs):
         ncol, nrow = self.loop.screen.get_cols_rows()
         ft = self.status_text
@@ -455,7 +491,8 @@ class MainDisplay(object):
             curr_footer = self.view.contents["footer"][0]
             if curr_footer is self.status:
                 self.view.contents["footer"] = (
-                    urwid.AttrMap(QueryEditor(caption="re: ", edit_text="", main_display=self), "foot"), None)
+                    urwid.AttrMap(QueryEditor(caption="re: ", edit_text="", 
+                                  main_display=self), "foot"), None)
                 self.view.focus_position = "footer"
         elif k == "meta w":
             status = self.seek_match() or status
@@ -466,6 +503,12 @@ class MainDisplay(object):
                 cap = cap.format(" ".join(sorted(get_all_styles())))
                 self.view.contents["footer"] = (urwid.AttrMap(StyleSelectorEditor(
                     caption=cap, edit_text=""), "foot"), None)
+                self.view.focus_position = "footer"
+        elif k == "ctrl f":
+            curr_footer = self.view.contents["footer"][0]
+            if curr_footer is self.status:
+                self.view.contents["footer"] = (urwid.AttrMap(FileSelectorEditor(
+                    caption="read in file: ", edit_text=""), "foot"), None)
                 self.view.focus_position = "footer"
         elif k == "esc":
             curr_footer = self.view.contents["footer"][0]
