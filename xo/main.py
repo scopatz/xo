@@ -9,6 +9,7 @@ ctrl + x: exit (does not save)
 
 meta + s: select pygments style
 ctrl + f: insert file at current position
+ctrl + y: go to line & column (yalla, let's bounce)
 
 ctrl + k: cuts the current line to the clipboard
 ctrl + u: pastes the clipboard to the current line
@@ -16,7 +17,8 @@ ctrl + t: clears the clipboard (these spell K-U-T)
 
 ctrl + w: set regular expression and jump to first match
 meta + w: jump to next match of current regular expression
-ctrl + y: go to line & column (yalla, let's bounce)
+ctrl + r: set substitution for regular expression and replace first match
+meta + r: replace next match of current regular expression
 """
 import os
 import re
@@ -32,7 +34,6 @@ from pygments.lexers import guess_lexer, guess_lexer_for_filename, get_lexer_by_
 from pygments.lexers.special import TextLexer
 from pygments.filter import Filter
 from pygments.styles import get_all_styles, get_style_by_name
-from pygments.styles.monokai import MonokaiStyle as S
 
 from colortrans import rgb2short
 
@@ -40,6 +41,7 @@ RE_WORD = re.compile(r'\w+')
 RE_NOT_WORD = re.compile(r'\W+')
 RE_NOT_SPACE = re.compile(r'\S')
 RE_TWO_DIGITS = re.compile("(\d+)(\D+)?(\d+)?")
+RE_SPACES = re.compile(r'( +)')
 
 class NonEmptyFilter(Filter):
     """Ensures that tokens have len > 0."""
@@ -55,9 +57,10 @@ def sanitize_text(t):
     return t
 
 class LineEditor(urwid.Edit):
-
+    """Line editor with highligthing, column numbering, and smart home."""
     def __init__(self, edit_text="", lexer=None, main_display=None, smart_home=True, 
                  **kwargs):
+        self.original_text = edit_text
         super().__init__(edit_text=sanitize_text(edit_text), **kwargs)
         if lexer is None:
            lexer = guess_lexer(self.get_edit_text())
@@ -228,23 +231,14 @@ class LineWalker(urwid.ListWalker):
 
     def read_next_line(self):
         """Read another line from the file."""
-        
         next_line = self.file.readline()
-        
         if not next_line or next_line[-1:] != '\n':
-            # no newline on last line of file
-            self.file = None
+            self.file = None  # no newline on last line of file
         else:
-            # trim newline characters
-            next_line = next_line[:-1]
-
-        expanded = next_line.expandtabs()
-        
-        edit = LineEditor(edit_text=expanded, **self.line_kwargs)
+            next_line = next_line[:-1]  # trim newline characters
+        edit = LineEditor(edit_text=next_line, **self.line_kwargs)
         edit.set_edit_pos(0)
-        edit.original_text = next_line
         self.lines.append(edit)
-
         return next_line
     
     def _get_at_pos(self, pos):
@@ -274,7 +268,7 @@ class LineWalker(urwid.ListWalker):
         focus = self.lines[self.focus]
         pos = focus.edit_pos
         edit = LineEditor(edit_text=focus.edit_text[pos:], **self.line_kwargs)
-        edit.original_text = ""
+        edit.original_text = None
         focus.set_edit_text(focus.edit_text[:pos])
         edit.set_edit_pos(0)
         self.lines.insert(self.focus+1, edit)
@@ -371,7 +365,7 @@ class LineWalker(urwid.ListWalker):
             return
         for line in cb[::-1]:
             newline = LineEditor(edit_text=line.get_edit_text(), **self.line_kwargs)
-            newline.original_text = ""
+            newline.original_text = None
             self.lines.insert(self.focus, newline)
         self.set_focus(self.focus + len(cb))
 
@@ -385,7 +379,6 @@ class LineWalker(urwid.ListWalker):
         rawlines.reverse()
         for rawline in rawlines:
             newline = LineEditor(edit_text=rawline, **self.line_kwargs)
-            newline.original_text = rawline
             self.lines.insert(pos, newline)
         rawlines.reverse()
 
@@ -608,43 +601,41 @@ class MainDisplay(object):
             
     def save_file(self):
         """Write the file out to disk."""
-        
-        l = []
-        walk = self.walker
-        for edit in walk.lines:
+        newlines = []
+        walker = self.walker
+        for line in walker.lines:
             # collect the text already stored in edit widgets
-            if edit.original_text.expandtabs() == edit.edit_text:
-                l.append(edit.original_text)
+            edit_text = line.edit_text
+            orig_text = line.original_text
+            if orig_text is None:
+                # re-tab here
+                newline = edit_text
+            elif sanitize_text(orig_text) == edit_text:
+                newline = orig_text
             else:
-                l.append(edit.edit_text)
+                # re-tab here
+                newline = edit_text
+            newlines.append(ensure_endswith_newline(newline))
         
-        # then the rest
-        while walk.file is not None:
-            l.append(walk.read_next_line())
+        while walker.file is not None:  # grab remaining lines
+            newlines.append(ensure_endswith_newline(walker.read_next_line()))
             
-        # write back to disk
-        outfile = open(self.save_name, "w")
-        
-        prefix = ""
-        for line in l:
-            outfile.write(prefix + line)
-            prefix = "\n"
+        with open(self.save_name, "w") as f:  
+            for newline in newlines:
+                f.write(newline)
 
-def re_tab(s):
-    """Return a tabbed string from an expanded one."""
-    l = []
-    p = 0
-    for i in range(8, len(s), 8):
-        if s[i-2:i] == "  ":
-            # collapse two or more spaces into a tab
-            l.append(s[p:i].rstrip() + "\t")
-            p = i
+ensure_endswith_newline = lambda x: x if x.endswith('\n') else x + '\n'
 
-    if p == 0:
-        return s
-    else:
-        l.append(s[p:])
-        return "".join(l)
+def retab(s, tablen=8):
+    # via http://code.activestate.com/recipes/65226-expanding-and-compressing-tabs/
+    pieces = RE_SPACES.split(s)
+    for i, piece in enumerate(pieces):
+        thislen = len(piece)
+        if piece.isspace():
+            numtabs = thislen / tablen
+            numblanks = thislen % tablen
+            pieces[i] = '\t' * numtabs + ' ' * numblanks
+    return ''.join(pieces)
 
 def touch(filename):
     """Opens a file and updates the mtime, like the posix command of the same name."""
