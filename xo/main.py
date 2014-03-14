@@ -11,8 +11,8 @@ ctrl + k: cuts the current line to the clipboard
 ctrl + u: pastes the clipboard to the current line
 ctrl + t: clears the clipboard (these spell K-U-T)
 
-alt + w: set regular expression and jump to first match
-ctrl + w: jump to next match of current regular expression
+ctrl + w: set regular expression and jump to first match
+meta + w: jump to next match of current regular expression
 ctrl + y: go to line & column (yalla, let's bounce)
 """
 import os
@@ -427,13 +427,13 @@ class MainDisplay(object):
                 self.view.contents["footer"] = (
                     urwid.AttrMap(GotoEditor("line & col: ", ""), "foot"), None)
                 self.view.focus_position = "footer"
-        elif k == "meta w":
+        elif k == "ctrl w":
             curr_footer = self.view.contents["footer"][0]
             if curr_footer is self.status:
                 self.view.contents["footer"] = (
                     urwid.AttrMap(QueryEditor(caption="re: ", edit_text="", main_display=self), "foot"), None)
                 self.view.focus_position = "footer"
-        elif k == "ctrl w":
+        elif k == "meta w":
             status = self.seek_match() or status
         elif k == "esc":
             curr_footer = self.view.contents["footer"][0]
