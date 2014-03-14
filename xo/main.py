@@ -19,6 +19,7 @@ import os
 import re
 import io
 import sys
+from collections import deque
 from argparse import ArgumentParser
 
 import urwid
@@ -82,13 +83,39 @@ class GotoEditor(urwid.Edit):
 
 class QueryEditor(urwid.Edit):
     """Sets a (compiled) regular expression on the main body."""
+    def __init__(self, main_display=None, **kwargs):
+        super().__init__(**kwargs)
+        self.main_display = main_display
+        self.qi = self.max_qi = len(main_display.queries)  # queries index
+        self.orig_text = ""
+
     def run(self, main_display):
         try:
             q = re.compile(self.get_edit_text())
         except re.error:
             return "re fail "
-        main_display.query = q
+        main_display.queries.append(q)
         return main_display.seek_match()
+
+    def keypress(self, size, key):
+        rtn = super().keypress(size, key)
+        if key == "up":
+            qi = self.qi
+            if qi == self.max_qi:
+                self.orig_text = self.edit_text
+            qi = qi - 1 if qi > 0 else 0
+            if len(self.main_display.queries) > 0:
+                self.set_edit_text(self.main_display.queries[qi].pattern)
+            self.qi = qi
+        elif key == "down":
+            qi = self.qi
+            qi = qi + 1 if qi < self.max_qi else qi
+            if qi == self.max_qi:
+                self.set_edit_text(self.orig_text)
+            else:
+                self.set_edit_text(self.main_display.queries[qi].pattern)
+            self.qi = qi
+        return rtn
 
 class LineWalker(urwid.ListWalker):
     """ListWalker-compatible class for lazily reading file contents."""
@@ -164,11 +191,7 @@ class LineWalker(urwid.ListWalker):
             return self.lines[pos], pos
 
         if self.file is None:
-            # file is closed, so there are no more lines
-            return None, None
-
-        #assert pos == len(self.lines), "out of order request?"
-        #self.read_next_line()
+            return None, None  # file is closed, so there are no more lines
         self._ensure_read_in(pos)
         return self.lines[-1], pos
 
@@ -302,7 +325,7 @@ class MainDisplay(object):
         self.view = urwid.Frame(urwid.AttrMap(self.listbox, 'body'),
                                 footer=self.status)
         self.clipboard = None
-        self.query = None
+        self.queries = deque(maxlen=128)
 
         default = 'default'
         for tok, st in S.styles.items():
@@ -327,11 +350,10 @@ class MainDisplay(object):
 
     def seek_match(self):
         """Finds and jumps to the next match for the current query."""
-        q = self.query
-        if q is None:
+        if len(self.queries) == 0:
             stat = "no re   "
         else:
-            stat = self.walker.seek_match(q)
+            stat = self.walker.seek_match(self.queries[-1])
         return stat
 
     def reset_status(self, status="xo      ", *args, **kwargs):
@@ -412,7 +434,7 @@ class MainDisplay(object):
             curr_footer = self.view.contents["footer"][0]
             if curr_footer is self.status:
                 self.view.contents["footer"] = (
-                    urwid.AttrMap(QueryEditor("re: ", ""), "foot"), None)
+                    urwid.AttrMap(QueryEditor(caption="re: ", edit_text="", main_display=self), "foot"), None)
                 self.view.focus_position = "footer"
         elif k == "ctrl w":
             status = self.seek_match() or status
