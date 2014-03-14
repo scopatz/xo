@@ -3,9 +3,15 @@
 
 key commands
 ------------
+esc: get help
+ctrl + o: save file (write-out)
+ctrl + x: exit (does not save)
+
 ctrl + k: cuts the current line to the clipboard
 ctrl + u: pastes the clipboard to the current line
 ctrl + t: clears the clipboard (these spell K-U-T)
+
+ctrl + y: go to line & column (yalla, let's bounce)
 """
 import os
 import re
@@ -68,9 +74,19 @@ class GotoEditor(urwid.Edit):
     def run(self, main_display):
         m = RE_TWO_DIGITS.search(self.get_edit_text())
         if m is None:
-            return "error   "
+            return "error!  "
         line, _, col = m.groups()
         main_display.walker.goto(int(line), int(col or 1))
+
+class QueryEditor(urwid.Edit):
+    """Sets a (compiled) regular expression on the main body."""
+    def run(self, main_display):
+        try:
+            q = re.compile(self.get_edit_text())
+        except re.error:
+            return "re fail "
+        main_display.query = q
+        return main_display.seek_match()
 
 class LineWalker(urwid.ListWalker):
     """ListWalker-compatible class for lazily reading file contents."""
@@ -208,6 +224,26 @@ class LineWalker(urwid.ListWalker):
         self.lines[focus].set_edit_pos(col - 1)
         self.set_focus(focus)
 
+    def seek_match(self, q):
+        """Finds the next match to the regular expression q and goes there."""
+        m = None
+        orig_pos = self.focus
+        curr_pos = orig_pos - 1
+        last_pos = curr_pos - 1
+        while m is None and last_pos != curr_pos:
+            # search down the lines
+            last_pos = curr_pos
+            w, curr_pos = self.get_next(curr_pos)
+            m = q.search(w.get_edit_text())
+        if m is None:
+           curr_pos = 0  # start from the top
+        while m is None and curr_pos < orig_pos:
+            w, curr_pos = self.get_next(curr_pos)
+            m = q.search(w.get_edit_text())
+        if m is None:
+            return "0 res.  "
+        self.goto(curr_pos + 1, m.start() + 1)
+
     #
     # Clipboard methods
     #
@@ -261,6 +297,7 @@ class MainDisplay(object):
         self.view = urwid.Frame(urwid.AttrMap(self.listbox, 'body'),
                                 footer=self.status)
         self.clipboard = None
+        self.query = None
 
         default = 'default'
         for tok, st in S.styles.items():
@@ -283,6 +320,15 @@ class MainDisplay(object):
         self.walker.goto(line, col)
         self.loop.run()
 
+    def seek_match(self):
+        """Finds and jumps to the next match for the current query."""
+        q = self.query
+        if q is None:
+            stat = "no re   "
+        else:
+            stat = self.walker.seek_match(q)
+        return stat
+
     def reset_status(self, status="xo      ", *args, **kwargs):
         ncol, nrow = self.loop.screen.get_cols_rows()
         ft = self.status_text
@@ -292,8 +338,7 @@ class MainDisplay(object):
         self.status.original_widget.set_text(ft)
     
     def unhandled_keypress(self, k):
-        """Last resort for keypresses."""
-
+        """Where the main app handles keypresses."""
         status = "xo      "
         if k == "ctrl o":
             self.save_file()
@@ -358,6 +403,14 @@ class MainDisplay(object):
                 self.view.contents["footer"] = (
                     urwid.AttrMap(GotoEditor("line & col: ", ""), "foot"), None)
                 self.view.focus_position = "footer"
+        elif k == "ctrl a":
+            curr_footer = self.view.contents["footer"][0]
+            if curr_footer is self.status:
+                self.view.contents["footer"] = (
+                    urwid.AttrMap(QueryEditor("re: ", ""), "foot"), None)
+                self.view.focus_position = "footer"
+        elif k == "ctrl w":
+            status = self.seek_match() or status
         elif k == "esc":
             curr_footer = self.view.contents["footer"][0]
             if curr_footer is self.status:
@@ -372,7 +425,6 @@ class MainDisplay(object):
             return
         self.reset_status(status=status)
         return True
-
             
     def save_file(self):
         """Write the file out to disk."""
