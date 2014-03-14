@@ -6,7 +6,9 @@ key commands
 esc: get help
 ctrl + o: save file (write-out)
 ctrl + x: exit (does not save)
+
 meta + s: select pygments style
+ctrl + f: insert file at current position
 
 ctrl + k: cuts the current line to the clipboard
 ctrl + u: pastes the clipboard to the current line
@@ -91,14 +93,39 @@ class GotoEditor(urwid.Edit):
         line, _, col = m.groups()
         main_display.walker.goto(int(line), int(col or 1))
 
-class QueryEditor(urwid.Edit):
-    """Sets a (compiled) regular expression on the main body."""
-    def __init__(self, main_display=None, **kwargs):
+class DequeEditor(urwid.Edit):
+    """An editor that uses values from a deque or list.  Useful for histories."""
+    def __init__(self, deq=None, **kwargs):
         super().__init__(**kwargs)
-        self.main_display = main_display
-        self.qi = self.max_qi = len(main_display.queries)  # queries index
+        self.deq = deq
+        self.i = self.max_i = len(deq)  # index
         self.orig_text = ""
 
+    def text_at(self, i):
+        return self.deq[i]
+
+    def keypress(self, size, key):
+        rtn = super().keypress(size, key)
+        if key == "up":
+            i = self.i
+            if i == self.max_i:
+                self.orig_text = self.edit_text
+            i = i - 1 if i > 0 else 0
+            if len(self.deq) > 0:
+                self.set_edit_text(self.text_at(i))
+            self.i = i
+        elif key == "down":
+            i = self.i
+            i = i + 1 if i < self.max_i else i
+            if i == self.max_i:
+                self.set_edit_text(self.orig_text)
+            else:
+                self.set_edit_text(self.text_at(i))
+            self.i = i
+        return rtn
+
+class QueryEditor(DequeEditor):
+    """Sets a (compiled) regular expression on the main body."""
     def run(self, main_display):
         try:
             q = re.compile(self.get_edit_text())
@@ -107,25 +134,15 @@ class QueryEditor(urwid.Edit):
         main_display.queries.append(q)
         return main_display.seek_match()
 
-    def keypress(self, size, key):
-        rtn = super().keypress(size, key)
-        if key == "up":
-            qi = self.qi
-            if qi == self.max_qi:
-                self.orig_text = self.edit_text
-            qi = qi - 1 if qi > 0 else 0
-            if len(self.main_display.queries) > 0:
-                self.set_edit_text(self.main_display.queries[qi].pattern)
-            self.qi = qi
-        elif key == "down":
-            qi = self.qi
-            qi = qi + 1 if qi < self.max_qi else qi
-            if qi == self.max_qi:
-                self.set_edit_text(self.orig_text)
-            else:
-                self.set_edit_text(self.main_display.queries[qi].pattern)
-            self.qi = qi
-        return rtn
+    def text_at(self, i):
+        return self.deq[i].pattern
+
+class ReplacementEditor(DequeEditor):
+    """Sets a replacement string on the main body."""
+    def run(self, main_display):
+        r = self.get_edit_text()
+        main_display.replacements.append(r)
+        return main_display.replace_match()
 
 class StyleSelectorEditor(urwid.Edit):
     """Editor to select pygments style."""
@@ -320,6 +337,18 @@ class LineWalker(urwid.ListWalker):
             return "0 res.  "
         self.goto(curr_pos + 1, m.start() + 1)
 
+    def replace_match(self, q, r):
+        """Finds & replaces the next match to the regular expression q."""
+        stat = self.seek_match(q)
+        if stat is not None:
+            return stat
+        w, ypos = self.get_focus()
+        xpos = w.edit_pos
+        text = w.edit_text
+        s = q.sub(r, text[xpos:], count=1)
+        w.set_edit_text(text[:xpos] + s)
+        w.set_edit_pos(xpos)
+
     #
     # Clipboard methods
     #
@@ -384,6 +413,7 @@ class MainDisplay(object):
                                 footer=self.status)
         self.clipboard = None
         self.queries = deque(maxlen=128)
+        self.replacements = deque(maxlen=128)
 
     def register_palette(self, style_class):
         """Converts pygmets style to urwid palatte"""
@@ -425,6 +455,18 @@ class MainDisplay(object):
             stat = "no re   "
         else:
             stat = self.walker.seek_match(self.queries[-1])
+        return stat
+
+    def replace_match(self):
+        """Finds, jumps, and substitues to the next match for the current query & 
+        replacement.
+        """
+        if len(self.queries) == 0:
+            stat = "no re   "
+        elif len(self.replacements) == 0:
+            stat = "no sub  "
+        else:
+            stat = self.walker.replace_match(self.queries[-1], self.replacements[-1])
         return stat
 
     def load_file(self, fname):
@@ -511,10 +553,30 @@ class MainDisplay(object):
             if curr_footer is self.status:
                 self.view.contents["footer"] = (
                     urwid.AttrMap(QueryEditor(caption="re: ", edit_text="", 
-                                  main_display=self), "foot"), None)
+                                  deq=self.queries), "foot"), None)
                 self.view.focus_position = "footer"
         elif k == "meta w":
             status = self.seek_match() or status
+        elif k == "ctrl r":
+            curr_footer = self.view.contents["footer"][0]
+            w = curr_footer.original_widget
+            if isinstance(w, QueryEditor):
+                status = w.run(self) or status
+                self.view.focus_position = "body"
+                self.view.contents["footer"] = (self.status, None)
+                curr_footer = self.status
+            if curr_footer is self.status:
+                self.view.contents["footer"] = (
+                    urwid.AttrMap(ReplacementEditor(caption="sub: ", edit_text="", 
+                                  deq=self.replacements), "foot"), None)
+                self.view.focus_position = "footer"
+        elif k == "meta r":
+            w = self.view.contents["footer"][0].original_widget
+            if isinstance(w, QueryEditor):
+                status = w.run(self) or status
+                self.view.focus_position = "body"
+                self.view.contents["footer"] = (self.status, None)
+            status = self.replace_match() or status
         elif k == "meta s":
             curr_footer = self.view.contents["footer"][0]
             if curr_footer is self.status:
