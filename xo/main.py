@@ -136,10 +136,14 @@ class LineWalker(urwid.ListWalker):
 
         #assert pos == len(self.lines), "out of order request?"
         #self.read_next_line()
-        while pos >= len(self.lines):
-            self.read_next_line()
-        
+        self._ensure_read_in(pos)
         return self.lines[-1], pos
+
+    def _ensure_read_in(self, lineno):
+        next_line = ""
+        while lineno >= len(self.lines) and next_line is not None \
+                                        and self.file is not None:
+            next_line = self.read_next_line()
     
     def split_focus(self):
         """Divide the focus edit widget at the cursor location."""
@@ -184,9 +188,7 @@ class LineWalker(urwid.ListWalker):
 
     def goto(self, lineno, col):
         """Jumps to a specific line & column.  These are 1-indexed."""
-        next_line = ""
-        while lineno >= len(self.lines) and next_line is not None:
-            next_line = self.read_next_line()
+        self._ensure_read_in(lineno)
         focus = min(lineno, len(self.lines)) - 1
         self.lines[focus].set_edit_pos(col - 1)
         self.set_focus(focus)
@@ -223,9 +225,9 @@ class LineWalker(urwid.ListWalker):
 
 class MainDisplay(object):
     palette = [
-        ('body','default', 'default'),
-        ('foot','black', 'dark blue', 'bold'),
-        ('key','black', 'dark magenta', 'underline'),
+        ('body', 'default', 'default'),
+        ('foot', 'black', 'dark blue', 'bold'),
+        ('key', 'black', 'dark magenta', 'underline'),
         ]
         
     footer_text = ('foot', [
@@ -241,7 +243,7 @@ class MainDisplay(object):
         self.listbox = urwid.ListBox(self.walker)
         self.footer = urwid.AttrWrap(urwid.Text(self.footer_text), "foot")
         self.view = urwid.Frame(urwid.AttrWrap(self.listbox, 'body'),
-            footer=self.footer)
+                                footer=self.footer)
         self.clipboard = None
 
         default = 'default'
