@@ -19,6 +19,7 @@ from colortrans import rgb2short
 RE_WORD = re.compile(r'\w+')
 RE_NOT_WORD = re.compile(r'\W+')
 RE_NOT_SPACE = re.compile(r'\S')
+RE_TWO_DIGITS = re.compile("(\d+)(\D+)?(\d+)?")
 
 class NonEmptyFilter(Filter):
     """Ensures that tokens have len > 0."""
@@ -47,14 +48,23 @@ class LineEditor(urwid.Edit):
         orig_pos = self.edit_pos
         rtn = super().keypress(size, key)
         if key == "left" or key == "right":
-            self.main_display.reset_footer()
+            self.main_display.reset_status()
         elif self.smart_home and key == "home":
             m = RE_NOT_SPACE.search(self.edit_text or "")
             i = 0 if m is None else m.start()
             i = 0 if i == orig_pos else i
             self.set_edit_pos(i)
-            self.main_display.reset_footer()
+            self.main_display.reset_status()
         return rtn
+
+class GotoEditor(urwid.Edit):
+    """Editor to trigger jumps."""
+    def run(self, main_display):
+        m = RE_TWO_DIGITS.search(self.get_edit_text())
+        if m is None:
+            return "error   "
+        line, _, col = m.groups()
+        main_display.walker.goto(int(line), int(col or 1))
 
 class LineWalker(urwid.ListWalker):
     """ListWalker-compatible class for lazily reading file contents."""
@@ -89,7 +99,7 @@ class LineWalker(urwid.ListWalker):
     def set_focus(self, focus):
         self.focus = focus
         self._modified()
-        self.main_display.reset_footer()
+        self.main_display.reset_status()
     
     def get_next(self, start_from):
         return self._get_at_pos(start_from + 1)
@@ -117,7 +127,6 @@ class LineWalker(urwid.ListWalker):
         self.lines.append(edit)
 
         return next_line
-        
     
     def _get_at_pos(self, pos):
         """Return a widget for the line number passed."""
@@ -230,7 +239,7 @@ class MainDisplay(object):
         ('key', 'black', 'dark magenta', 'underline'),
         ]
         
-    footer_text = ('foot', [
+    status_text = ('foot', [
         "xo    ",
         ('key', "^x"), " exit ",
         ('key', "^o"), " save ",
@@ -241,9 +250,9 @@ class MainDisplay(object):
         self.save_name = name
         self.walker = LineWalker(name, main_display=self) 
         self.listbox = urwid.ListBox(self.walker)
-        self.footer = urwid.AttrMap(urwid.Text(self.footer_text), "foot")
+        self.status = urwid.AttrMap(urwid.Text(self.status_text), "foot")
         self.view = urwid.Frame(urwid.AttrMap(self.listbox, 'body'),
-                                footer=self.footer)
+                                footer=self.status)
         self.clipboard = None
 
         default = 'default'
@@ -267,13 +276,13 @@ class MainDisplay(object):
         self.walker.goto(line, col)
         self.loop.run()
 
-    def reset_footer(self, status="xo      ", *args, **kwargs):
+    def reset_status(self, status="xo      ", *args, **kwargs):
         ncol, nrow = self.loop.screen.get_cols_rows()
-        ft = self.footer_text
+        ft = self.status_text
         ft[1][0] = status
         flc = "{0}:{1[0]}:{1[1]}".format(self.save_name, self.walker.get_coords())
         ft[1][-1] = "{0: >{1}}".format(flc, max(ncol - 24, 0))
-        self.footer.original_widget.set_text(ft)
+        self.status.original_widget.set_text(ft)
     
     def unhandled_keypress(self, k):
         """Last resort for keypresses."""
@@ -291,10 +300,14 @@ class MainDisplay(object):
             # backspace at beginning of line
             self.walker.combine_focus_with_prev()
         elif k == "enter":
-            # start new line
-            self.walker.split_focus()
-            # move the cursor to the new line and reset pref_col
-            self.loop.process_input(["down", "home"])
+            fp = self.view.focus_position
+            if fp == "body":
+                self.walker.split_focus()  # start new line
+                self.loop.process_input(["down", "home"])
+            elif fp == "footer":
+                status = self.view.focus.original_widget.run(self) or status
+                self.view.focus_position = "body"
+                self.view.contents["footer"] = (self.status, None)
         elif k == "right":
             w, pos = self.walker.get_focus()
             w, pos = self.walker.get_next(pos)
@@ -330,13 +343,19 @@ class MainDisplay(object):
             m = re_word.search(w.edit_text or "", xpos)
             word_pos = xpos if m is None else m.end()
             w.set_edit_pos(word_pos)
+        elif k == "ctrl y":
+            curr_footer = self.view.contents["footer"][0]
+            if curr_footer is self.status:
+                self.view.contents["footer"] = (
+                    urwid.AttrMap(GotoEditor("line & col: ", ""), "foot"), None)
+                self.view.focus_position = "footer"
         else:
-            self.reset_footer()
+            self.reset_status()
             return
-        self.reset_footer(status=status)
+        self.reset_status(status=status)
         return True
-            
 
+            
     def save_file(self):
         """Write the file out to disk."""
         
