@@ -241,8 +241,8 @@ class MainDisplay(object):
         self.save_name = name
         self.walker = LineWalker(name, main_display=self) 
         self.listbox = urwid.ListBox(self.walker)
-        self.footer = urwid.AttrWrap(urwid.Text(self.footer_text), "foot")
-        self.view = urwid.Frame(urwid.AttrWrap(self.listbox, 'body'),
+        self.footer = urwid.AttrMap(urwid.Text(self.footer_text), "foot")
+        self.view = urwid.Frame(urwid.AttrMap(self.listbox, 'body'),
                                 footer=self.footer)
         self.clipboard = None
 
@@ -273,7 +273,7 @@ class MainDisplay(object):
         ft[1][0] = status
         flc = "{0}:{1[0]}:{1[1]}".format(self.save_name, self.walker.get_coords())
         ft[1][-1] = "{0: >{1}}".format(flc, max(ncol - 24, 0))
-        self.footer.w.set_text(ft)
+        self.footer.original_widget.set_text(ft)
     
     def unhandled_keypress(self, k):
         """Last resort for keypresses."""
