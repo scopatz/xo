@@ -11,6 +11,8 @@ ctrl + k: cuts the current line to the clipboard
 ctrl + u: pastes the clipboard to the current line
 ctrl + t: clears the clipboard (these spell K-U-T)
 
+alt + w: set regular expression and jump to first match
+ctrl + w: jump to next match of current regular expression
 ctrl + y: go to line & column (yalla, let's bounce)
 """
 import os
@@ -234,6 +236,9 @@ class LineWalker(urwid.ListWalker):
             # search down the lines
             last_pos = curr_pos
             w, curr_pos = self.get_next(curr_pos)
+            if w is None:
+                m = None
+                break
             m = q.search(w.get_edit_text(), w.edit_pos+1 if curr_pos == orig_pos else 0)
         if m is None:
            curr_pos = 0  # start from the top
@@ -403,7 +408,7 @@ class MainDisplay(object):
                 self.view.contents["footer"] = (
                     urwid.AttrMap(GotoEditor("line & col: ", ""), "foot"), None)
                 self.view.focus_position = "footer"
-        elif k == "ctrl a":
+        elif k == "meta w":
             curr_footer = self.view.contents["footer"][0]
             if curr_footer is self.status:
                 self.view.contents["footer"] = (
