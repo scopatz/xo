@@ -43,6 +43,25 @@ RE_NOT_SPACE = re.compile(r'\S')
 RE_TWO_DIGITS = re.compile("(\d+)(\D+)?(\d+)?")
 RE_SPACES = re.compile(r'( +)')
 
+DEFAULT_RC = {
+    'tabs': {
+        # name: (size, must_retab)
+        'default': (4, False), 
+        'c': (2, False), 
+        'h': (2, False), 
+        'cc': (2, False), 
+        'c++': (2, False), 
+        'h++': (2, False), 
+        'cpp': (2, False), 
+        'hpp': (2, False), 
+        'cxx': (2, False), 
+        'hxx': (2, False), 
+        'tsv': (8, True), 
+        'Makefile': (4, True), 
+        },
+    'style': 'monokai',
+    }
+
 class NonEmptyFilter(Filter):
     """Ensures that tokens have len > 0."""
     def filter(self, lexer, stream):
@@ -50,21 +69,22 @@ class NonEmptyFilter(Filter):
             if len(value) > 0:
                 yield ttype, value
 
-def sanitize_text(t):
+def sanitize_text(t, tabsize):
     if t.endswith('\n'):
         t = t[:-1]
-    t = t.expandtabs()
+    t = t.expandtabs(tabsize)
     return t
 
 class LineEditor(urwid.Edit):
     """Line editor with highligthing, column numbering, and smart home."""
     def __init__(self, edit_text="", lexer=None, main_display=None, smart_home=True, 
-                 **kwargs):
+                 tabsize=None, **kwargs):
         self.original_text = edit_text
-        super().__init__(edit_text=sanitize_text(edit_text), **kwargs)
+        super().__init__(edit_text=sanitize_text(edit_text, tabsize), **kwargs)
         if lexer is None:
            lexer = guess_lexer(self.get_edit_text())
         self.lexer = lexer
+        self.tabsize = tabsize
         self.main_display = main_display
         self.smart_home = smart_home
 
@@ -76,7 +96,9 @@ class LineEditor(urwid.Edit):
 
     def keypress(self, size, key):
         orig_pos = self.edit_pos
+        orig_allow_tab, self.allow_tab = self.allow_tab, False
         rtn = super().keypress(size, key)
+        self.allow_tab = orig_allow_tab
         if key == "left" or key == "right":
             self.main_display.reset_status()
         elif self.smart_home and key == "home":
@@ -85,6 +107,9 @@ class LineEditor(urwid.Edit):
             i = 0 if i == orig_pos else i
             self.set_edit_pos(i)
             self.main_display.reset_status()
+        elif orig_allow_tab and key == "tab":
+            key = " "*(self.tabsize - (self.edit_pos%self.tabsize))
+            self.insert_text(key)
         return rtn
 
 class GotoEditor(urwid.Edit):
@@ -191,7 +216,7 @@ class FileSelectorEditor(urwid.Edit):
 class LineWalker(urwid.ListWalker):
     """ListWalker-compatible class for lazily reading file contents."""
     
-    def __init__(self, name, main_display):
+    def __init__(self, name, main_display, tabsize):
         self.name = name
         self.file = f = open(name)
         try:
@@ -213,7 +238,8 @@ class LineWalker(urwid.ListWalker):
         self.lexer = lexer
         self.main_display = main_display
         self.line_kwargs = dict(caption="", allow_tab=True, lexer=lexer, 
-                                wrap='clip', main_display=main_display, smart_home=True)
+                                wrap='clip', main_display=main_display, 
+                                smart_home=True, tabsize=tabsize)
    
     def get_focus(self): 
         return self._get_at_pos(self.focus)
@@ -399,7 +425,9 @@ class MainDisplay(object):
     
     def __init__(self, name):
         self.save_name = name
-        self.walker = LineWalker(name, main_display=self) 
+        self.rc = DEFAULT_RC
+        self.set_tabs()
+        self.walker = LineWalker(name, main_display=self, tabsize=self.tabsize)
         self.listbox = urwid.ListBox(self.walker)
         self.status = urwid.AttrMap(urwid.Text(self.status_text), "foot")
         self.view = urwid.Frame(urwid.AttrMap(self.listbox, 'body'),
@@ -407,6 +435,16 @@ class MainDisplay(object):
         self.clipboard = None
         self.queries = deque(maxlen=128)
         self.replacements = deque(maxlen=128)
+
+    def set_tabs(self):
+        name = self.save_name
+        for tab in sorted(self.rc["tabs"].items(), reverse=True):
+            # reverse ensures longest match 
+            if name.endswith(tab[0]):
+                self.tabsize, self.must_retab = tab[1]
+                break
+        else:
+            self.tabsize, self.must_retab = self.rc["tabs"]["default"]
 
     def register_palette(self, style_class):
         """Converts pygmets style to urwid palatte"""
@@ -438,7 +476,7 @@ class MainDisplay(object):
             unhandled_input=self.unhandled_keypress)
         loop.screen.set_terminal_properties(256)
         self.loop = loop
-        self.register_palette(get_style_by_name("monokai"))
+        self.register_palette(get_style_by_name(self.rc["style"]))
         self.walker.goto(line, col)
         self.loop.run()
 
@@ -602,19 +640,19 @@ class MainDisplay(object):
     def save_file(self):
         """Write the file out to disk."""
         newlines = []
+        tabsize = self.tabsize
+        must_retab = self.must_retab
         walker = self.walker
         for line in walker.lines:
             # collect the text already stored in edit widgets
             edit_text = line.edit_text
             orig_text = line.original_text
             if orig_text is None:
-                # re-tab here
-                newline = edit_text
-            elif sanitize_text(orig_text) == edit_text:
+                newline = retab(edit_text, tabsize) if must_retab else edit_text
+            elif sanitize_text(orig_text, tabsize) == edit_text:
                 newline = orig_text
             else:
-                # re-tab here
-                newline = edit_text
+                newline = retab(edit_text, tabsize) if must_retab else edit_text
             newlines.append(ensure_endswith_newline(newline))
         
         while walker.file is not None:  # grab remaining lines
@@ -626,14 +664,14 @@ class MainDisplay(object):
 
 ensure_endswith_newline = lambda x: x if x.endswith('\n') else x + '\n'
 
-def retab(s, tablen=8):
+def retab(s, tabsize):
     # via http://code.activestate.com/recipes/65226-expanding-and-compressing-tabs/
     pieces = RE_SPACES.split(s)
     for i, piece in enumerate(pieces):
         thislen = len(piece)
         if piece.isspace():
-            numtabs = thislen / tablen
-            numblanks = thislen % tablen
+            numtabs = thislen / tabsize
+            numblanks = thislen % tabsize
             pieces[i] = '\t' * numtabs + ' ' * numblanks
     return ''.join(pieces)
 
