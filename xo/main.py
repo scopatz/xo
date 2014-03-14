@@ -6,6 +6,7 @@ key commands
 esc: get help
 ctrl + o: save file (write-out)
 ctrl + x: exit (does not save)
+meta + s: select pygments style
 
 ctrl + k: cuts the current line to the clipboard
 ctrl + u: pastes the clipboard to the current line
@@ -27,6 +28,7 @@ import pygments.util
 from pygments.lexers import guess_lexer, guess_lexer_for_filename, get_lexer_by_name
 from pygments.lexers.special import TextLexer
 from pygments.filter import Filter
+from pygments.styles import get_all_styles, get_style_by_name
 from pygments.styles.monokai import MonokaiStyle as S
 
 from colortrans import rgb2short
@@ -116,6 +118,15 @@ class QueryEditor(urwid.Edit):
                 self.set_edit_text(self.main_display.queries[qi].pattern)
             self.qi = qi
         return rtn
+
+class StyleSelectorEditor(urwid.Edit):
+    """Editor to select pygments style."""
+    def run(self, main_display):
+        try:
+            s = get_style_by_name(self.edit_text.strip())
+        except pygments.util.ClassNotFound:
+            return "bad sty "
+        main_display.register_palette(s)
 
 class LineWalker(urwid.ListWalker):
     """ListWalker-compatible class for lazily reading file contents."""
@@ -300,7 +311,7 @@ class LineWalker(urwid.ListWalker):
         self.clipboard = self.clipboard_pos = None
 
 class MainDisplay(object):
-    palette = [
+    base_palette = [
         ('body', 'default', 'default'),
         ('foot', 'black', 'dark blue', 'bold'),
         ('key', 'black', 'dark magenta', 'underline'),
@@ -324,8 +335,10 @@ class MainDisplay(object):
         self.clipboard = None
         self.queries = deque(maxlen=128)
 
+    def register_palette(self, style_class):
         default = 'default'
-        for tok, st in S.styles.items():
+        palette = list(self.base_palette)
+        for tok, st in style_class.styles.items():
             if '#' not in st:
                 st = ''
             st = st.split()
@@ -333,15 +346,16 @@ class MainDisplay(object):
             c = default if len(st) == 0 else 'h' + rgb2short(st[0][1:])[0]
             a = urwid.AttrSpec(c, default, colors=256)
             row = (tok, default, default, default, a.foreground, default)
-            self.palette.append(row)
+            palette.append(row)
+        self.loop.screen.register_palette(palette)
 
     def main(self, line=1, col=1):
         loop = urwid.MainLoop(self.view,
             handle_mouse=False,
             unhandled_input=self.unhandled_keypress)
         loop.screen.set_terminal_properties(256)
-        loop.screen.register_palette(self.palette)
         self.loop = loop
+        self.register_palette(get_style_by_name("monokai"))
         self.walker.goto(line, col)
         self.loop.run()
 
@@ -435,6 +449,14 @@ class MainDisplay(object):
                 self.view.focus_position = "footer"
         elif k == "meta w":
             status = self.seek_match() or status
+        elif k == "meta s":
+            curr_footer = self.view.contents["footer"][0]
+            if curr_footer is self.status:
+                cap = "available styles: {0}\nchoose one: "
+                cap = cap.format(" ".join(sorted(get_all_styles())))
+                self.view.contents["footer"] = (urwid.AttrMap(StyleSelectorEditor(
+                    caption=cap, edit_text=""), "foot"), None)
+                self.view.focus_position = "footer"
         elif k == "esc":
             curr_footer = self.view.contents["footer"][0]
             if curr_footer is self.status:
