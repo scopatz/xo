@@ -343,7 +343,14 @@ class MainDisplay(object):
                 st = ''
             st = st.split()
             st.sort()
-            c = default if len(st) == 0 else 'h' + rgb2short(st[0][1:])[0]
+            if len(st) == 0: 
+                c = default 
+            elif len(st[0]) == 7:
+                c = 'h' + rgb2short(st[0][1:])[0]
+            elif len(st[0]) == 4:
+                c = 'h' + rgb2short(st[0][1]*2 + st[0][2]*2 + st[0][3]*2)[0]
+            else:
+                c = default 
             a = urwid.AttrSpec(c, default, colors=256)
             row = (tok, default, default, default, a.foreground, default)
             palette.append(row)
