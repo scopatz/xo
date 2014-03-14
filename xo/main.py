@@ -20,7 +20,7 @@ import re
 import io
 import sys
 from collections import deque
-from argparse import ArgumentParser
+from argparse import ArgumentParser, RawDescriptionHelpFormatter
 
 import urwid
 import pygments.util
@@ -203,7 +203,6 @@ class LineWalker(urwid.ListWalker):
     
     def split_focus(self):
         """Divide the focus edit widget at the cursor location."""
-        
         focus = self.lines[self.focus]
         pos = focus.edit_pos
         edit = LineEditor(edit_text=focus.edit_text[pos:], **self.line_kwargs)
@@ -217,7 +216,6 @@ class LineWalker(urwid.ListWalker):
         above, ignore = self.get_prev(self.focus)
         if above is None:
             return  # already at the top
-        
         focus = self.lines[self.focus]
         above.set_edit_pos(len(above.edit_text))
         above.set_edit_text(above.edit_text + focus.edit_text)
@@ -229,7 +227,6 @@ class LineWalker(urwid.ListWalker):
         below, ignore = self.get_next(self.focus)
         if below is None:
             return  # already at bottom
-        
         focus = self.lines[self.focus]
         focus.set_edit_text(focus.edit_text + below.edit_text)
         del self.lines[self.focus+1]
@@ -504,8 +501,10 @@ def path_line_col(x):
     return plc[0], int(plc[1] or 1), int(plc[2] or 1)
 
 def main():
-    parser = ArgumentParser(prog='xo', description=__doc__)
-    parser.add_argument('path', help="path to file")
+    parser = ArgumentParser(prog='xo', description=__doc__, 
+                            formatter_class=RawDescriptionHelpFormatter)
+    parser.add_argument('path', help=("path to file, may include colon separated "
+                                      "line and col numbers, eg 'path/to/xo.py:10:42'"))
     ns = parser.parse_args()
     path, line, col = path_line_col(ns.path)
     if not os.path.exists(path):
