@@ -46,10 +46,17 @@ class NonEmptyFilter(Filter):
             if len(value) > 0:
                 yield ttype, value
 
+def sanitize_text(t):
+    if t.endswith('\n'):
+        t = t[:-1]
+    t = t.expandtabs()
+    return t
+
 class LineEditor(urwid.Edit):
 
-    def __init__(self, lexer=None, main_display=None, smart_home=True, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, edit_text="", lexer=None, main_display=None, smart_home=True, 
+                 **kwargs):
+        super().__init__(edit_text=sanitize_text(edit_text), **kwargs)
         if lexer is None:
            lexer = guess_lexer(self.get_edit_text())
         self.lexer = lexer
@@ -343,6 +350,16 @@ class LineWalker(urwid.ListWalker):
         """Removes the existing clipboard, destroying all lines in the process."""
         self.clipboard = self.clipboard_pos = None
 
+    def insert_raw_lines(self, rawlines):
+        """Inserts strings at the current position."""
+        pos = self.focus
+        rawlines.reverse()
+        for rawline in rawlines:
+            newline = LineEditor(edit_text=rawline, **self.line_kwargs)
+            newline.original_text = rawline
+            self.lines.insert(pos, newline)
+        rawlines.reverse()
+
 class MainDisplay(object):
     base_palette = [
         ('body', 'default', 'default'),
@@ -411,7 +428,9 @@ class MainDisplay(object):
         return stat
 
     def load_file(self, fname):
-        pass
+        with open(fname) as f:
+             rawlines = f.readlines()
+        self.walker.insert_raw_lines(rawlines)
 
     def reset_status(self, status="xo      ", *args, **kwargs):
         ncol, nrow = self.loop.screen.get_cols_rows()
