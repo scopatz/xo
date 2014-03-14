@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
 """exofrills: your text has been edited...but you are still hungry.
+
+key commands
+------------
+ctrl + k: cuts the current line to the clipboard
+ctrl + u: pastes the clipboard to the current line
+ctrl + t: clears the clipboard (these spell K-U-T)
 """
 import os
 import re
@@ -243,6 +249,7 @@ class MainDisplay(object):
         "xo    ",
         ('key', "^x"), " exit ",
         ('key', "^o"), " save ",
+        ('key', "esc"), " help ",
         ""
         ])
     
@@ -281,7 +288,7 @@ class MainDisplay(object):
         ft = self.status_text
         ft[1][0] = status
         flc = "{0}:{1[0]}:{1[1]}".format(self.save_name, self.walker.get_coords())
-        ft[1][-1] = "{0: >{1}}".format(flc, max(ncol - 24, 0))
+        ft[1][-1] = "{0: >{1}}".format(flc, max(ncol - 33, 0))
         self.status.original_widget.set_text(ft)
     
     def unhandled_keypress(self, k):
@@ -305,7 +312,9 @@ class MainDisplay(object):
                 self.walker.split_focus()  # start new line
                 self.loop.process_input(["down", "home"])
             elif fp == "footer":
-                status = self.view.focus.original_widget.run(self) or status
+                w = self.view.focus.original_widget
+                if hasattr(w, "run"):
+                    status = w.run(self) or status
                 self.view.focus_position = "body"
                 self.view.contents["footer"] = (self.status, None)
         elif k == "right":
@@ -349,6 +358,15 @@ class MainDisplay(object):
                 self.view.contents["footer"] = (
                     urwid.AttrMap(GotoEditor("line & col: ", ""), "foot"), None)
                 self.view.focus_position = "footer"
+        elif k == "esc":
+            curr_footer = self.view.contents["footer"][0]
+            if curr_footer is self.status:
+                self.view.contents["footer"] = (
+                    urwid.AttrMap(urwid.Text(__doc__.strip()), "foot"), None)
+                self.view.focus_position = "footer"
+            else:
+                self.view.contents["footer"] = (self.status, None)
+                self.view.focus_position = "body"
         else:
             self.reset_status()
             return
