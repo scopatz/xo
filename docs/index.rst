@@ -10,7 +10,14 @@
 
 exofrills - when ``nano`` is too much
 =====================================
-Have you ever been frustrated, angered, 
+Have you ever been frustrated that your text editor wasn't doing what you wanted?
+Angered that you can't remeber...
+
+* ...how to find help? 
+* ...what ``:wq`` means? 
+* ...any of the little lisper that you read as an undergrad?
+
+A small, brave world awaits!
 
 -----------
 
@@ -63,6 +70,31 @@ If you ask for more features *I will probably say no!* Just fork xo yourself.
 vi     2     vim    3     nano   3     pico   4
 **xo** **2** cat    3     less   4     emacs  5
 ====== ===== ====== ===== ====== ===== ====== =====
+
+-----------
+
+.. raw:: html
+
+
+    <div style="text-align:right;">
+        <img src="_static/whatin.png">
+    </div>
+    <br />
+    <div style="text-align:left;">
+        <img src="_static/xo.png">
+    </div>
+    <br />
+    <div style="text-align:right;">
+        <img src="_static/srsly.png">
+    </div>
+    <br />
+    <div style="text-align:left;">
+        <img src="_static/yes-xo.png">
+    </div>
+    <br />
+    <div style="text-align:right;">
+        <img src="_static/damn.png">
+    </div>
 
 -----------
 
