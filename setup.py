@@ -14,7 +14,7 @@ if sys.version_info[0] < 3:
 VERSION = "0.1"
 
 setup_kwargs = {
-    "version": VERSION + '.7',
+    "version": VERSION + '.8',
     "description": 'exofrills text editor',
     "author": 'Anthony Scopatz',
     "author_email": 'scopatz@gmail.com',
@@ -45,6 +45,7 @@ if __name__ == '__main__':
         long_description=open('readme.rst').read(),
         **setup_kwargs
         )
+
 
 
 

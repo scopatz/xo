@@ -658,20 +658,20 @@ class MainDisplay(object):
     def unhandled_keypress(self, k):
         """Where the main app handles keypresses."""
         status = "xo      "
+        fp = self.view.focus_position
         if k == "ctrl o":
             self.save_file()
             status = "saved   "
         elif k == "ctrl x":
             self.dump_cache()
             raise urwid.ExitMainLoop()
-        elif k == "delete":
-            # delete at end of line
+        elif k == "delete" and fp == "body":
+            # delete at end of line            
             self.walker.combine_focus_with_next()
-        elif k == "backspace":
+        elif k == "backspace" and fp == "body":
             # backspace at beginning of line
             self.walker.combine_focus_with_prev()
         elif k == "enter":
-            fp = self.view.focus_position
             if fp == "body":
                 self.walker.split_focus()  # start new line
                 self.loop.process_input(["down", "home"])
@@ -844,4 +844,5 @@ def main():
 
 if __name__=="__main__": 
     main()
+
 
