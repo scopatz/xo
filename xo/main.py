@@ -26,7 +26,7 @@ import io
 import sys
 import json
 from glob import glob
-from collections import deque
+from collections import deque, Mapping, Sequence
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 
 import urwid
@@ -132,10 +132,42 @@ DEFAULT_RC = {
     }
 DEFAULT_RC['rgb_to_short'] = {v: k for k, v in DEFAULT_RC['short_to_rgb'].items()}
 
-# Thanks to Micah Elliott (http://MicahElliott.com) for colortrans.py
+def merge_value(v1, v2):
+    if isinstance(v1, Mapping):
+        v = {}
+        v.update(v1)
+        v.update(v2)
+    elif isinstance(v1, str):
+        v = v2
+    elif isinstance(v1, Sequence):
+        v = list(v1) + list(v2)
+    else:
+        v = v2
+    return v
+
+def merge_rcs(rc1, rc2):
+    rc = {}
+    for k, v1 in rc1.items():
+        rc[k] = merge_value(v1, rc2[k]) if k in rc2 else v1
+    for k, v2 in rc2.items():
+        if k not in rc1:
+            rc[k] = v2
+    return rc
+
+def json_rc_load(fname):
+    fname = os.path.expanduser(fname)
+    if not os.path.isfile(fname):
+        return {}
+    with open(fname) as f:
+        try:
+            rc = json.load(f)
+        except ValueError:
+            rc = {}
+    return rc
 
 def rgb_to_short(rgb, mapping):
     """Find the closest xterm-256 approximation to the given RGB value."""
+    # Thanks to Micah Elliott (http://MicahElliott.com) for colortrans.py
     rgb = rgb.lstrip('#') if rgb.startswith('#') else rgb
     incs = (0x00, 0x5f, 0x87, 0xaf, 0xd7, 0xff)
     # Break 6-char RGB code into 3 integer vals.
@@ -364,15 +396,10 @@ class LineWalker(urwid.ListWalker):
     
     def _get_at_pos(self, pos):
         """Return a widget for the line number passed."""
-        
         if pos < 0:
-            # line 0 is the start of the file, no more above
-            return None, None
-            
+            return None, None  # line 0 is the start of the file, no more above
         if len(self.lines) > pos:
-            # we have that line so return it
-            return self.lines[pos], pos
-
+            return self.lines[pos], pos  # we have that line so return it
         if self.file is None:
             return None, None  # file is closed, so there are no more lines
         self._ensure_read_in(pos)
@@ -533,8 +560,22 @@ class MainDisplay(object):
                                   maxlen=self.rc["max_replacements"])
 
     def load_rc(self):
-        self.rc = rc = DEFAULT_RC
+        cacherc = json_rc_load('~/.cache/xo/rc.json')
+        configrc = json_rc_load('~/.config/xo/rc.json')
+        rc = merge_rcs(DEFAULT_RC, cacherc)
+        rc = merge_rcs(rc, configrc)
         rc["queries"] = [re.compile(q) for q in rc["queries"]]
+        self.rc = rc 
+
+    def dump_cache(self):
+        cacherc = {"replacements": list(self.replacements),
+                   "queries": [q.pattern for q in self.queries]}
+        dname = os.path.expanduser('~/.cache/xo/')
+        if not os.path.isdir(dname):
+            os.makedirs(dname)
+        fname = os.path.join(dname, 'rc.json')
+        with open(fname, 'w') as f:
+            json.dump(cacherc, f)
 
     def set_tabs(self):
         name = self.save_name
@@ -621,6 +662,7 @@ class MainDisplay(object):
             self.save_file()
             status = "saved   "
         elif k == "ctrl x":
+            self.dump_cache()
             raise urwid.ExitMainLoop()
         elif k == "delete":
             # delete at end of line
