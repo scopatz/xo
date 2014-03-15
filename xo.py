@@ -620,7 +620,12 @@ class MainDisplay(object):
         self.loop = loop
         self.register_palette(get_style_by_name(self.rc["style"]))
         self.walker.goto(line, col)
-        self.loop.run()
+        while True:
+            try:
+                self.loop.run()
+            except KeyboardInterrupt:
+                self.reset_status(status="YOLO!   ")
+
 
     def seek_match(self):
         """Finds and jumps to the next match for the current query."""
