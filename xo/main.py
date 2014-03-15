@@ -24,6 +24,7 @@ import os
 import re
 import io
 import sys
+import json
 from glob import glob
 from collections import deque
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
@@ -42,6 +43,10 @@ RE_TWO_DIGITS = re.compile("(\d+)(\D+)?(\d+)?")
 RE_SPACES = re.compile(r'( +)')
 
 DEFAULT_RC = {
+    'queries': [],
+    'replacements': [],
+    'max_queries': 128,
+    'max_replacements': 128,
     'tabs': {
         # name: (size, must_retab)
         'default': (4, False), 
@@ -515,7 +520,7 @@ class MainDisplay(object):
     
     def __init__(self, name):
         self.save_name = name
-        self.rc = DEFAULT_RC
+        self.load_rc()
         self.set_tabs()
         self.walker = LineWalker(name, main_display=self, tabsize=self.tabsize)
         self.listbox = urwid.ListBox(self.walker)
@@ -523,8 +528,13 @@ class MainDisplay(object):
         self.view = urwid.Frame(urwid.AttrMap(self.listbox, 'body'),
                                 footer=self.status)
         self.clipboard = None
-        self.queries = deque(maxlen=128)
-        self.replacements = deque(maxlen=128)
+        self.queries = deque(self.rc["queries"], maxlen=self.rc["max_queries"])
+        self.replacements = deque(self.rc["replacements"], 
+                                  maxlen=self.rc["max_replacements"])
+
+    def load_rc(self):
+        self.rc = rc = DEFAULT_RC
+        rc["queries"] = [re.compile(q) for q in rc["queries"]]
 
     def set_tabs(self):
         name = self.save_name
