@@ -1,9 +1,15 @@
+#! /usr/bin/env python
+
+import sys
 try:
     from setuptools import setup
     have_setuptools = True
 except ImportError:
     from distutils.core import setup
     have_setuptools = False
+
+if sys.version_info[0] < 3:
+    sys.exit("ERROR: xo requires Python 3.")
 
 VERSION = "0.1"
 
@@ -30,13 +36,16 @@ if have_setuptools:
         'Pygments >= 1.6',
         'urwid >= 1.1.1',
         ]
-setup(
-    name='exofrills',
-    py_modules=['xo'],
-    entry_points={'console_scripts': ['xo = xo:main',],},
-    long_description=open('readme.rst').read(),
-    **setup_kwargs
-    )
+
+if __name__ == '__main__':
+    setup(
+        name='exofrills',
+        py_modules=['xo'],
+        entry_points={'console_scripts': ['xo = xo:main',],},
+        long_description=open('readme.rst').read(),
+        **setup_kwargs
+        )
+
 
 
 
