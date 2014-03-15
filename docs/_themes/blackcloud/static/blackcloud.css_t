@@ -18,3 +18,8 @@ div.frontpage-images.container
     margin-bottom: 2.5em;
 }
 
+div.body
+{
+    background-color: #F0F0F0;
+    color: #323039;
+}

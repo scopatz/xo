@@ -8,11 +8,14 @@
     </div>
     <script type="text/javascript">initXoDungeon();</script>
 
+exofrills - when ``nano`` is too much
+=====================================
 
 Please fork xo from `github <https://github.com/scopatz/xo>`_:
 
 .. code-block:: bash
 
     git clone https://github.com/scopatz/xo.git
+
 
 
