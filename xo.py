@@ -625,6 +625,8 @@ class MainDisplay(object):
                 self.loop.run()
             except KeyboardInterrupt:
                 self.reset_status(status="YOLO!   ")
+            else:
+                break
 
 
     def seek_match(self):
