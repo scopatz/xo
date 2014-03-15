@@ -6,6 +6,8 @@ SPHINXOPTS    =
 SPHINXBUILD   = sphinx-build
 PAPER         =
 BUILDDIR      = _build
+RELEASE = v0.1
+
 
 # Internal variables.
 PAPEROPT_a4     = -D latex_paper_size=a4
@@ -15,6 +17,10 @@ ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) .
 I18NSPHINXOPTS  = $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) .
 
 .PHONY: help clean html dirhtml singlehtml pickle json htmlhelp qthelp devhelp epub latex latexpdf text man changes linkcheck doctest gettext
+
+DOCREPONAME = scopatz-xo.github.io
+DOCREPOURL  = git@github.com:scopatz/xo-docs.git
+
 
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
@@ -151,3 +157,40 @@ doctest:
 	$(SPHINXBUILD) -b doctest $(ALLSPHINXOPTS) $(BUILDDIR)/doctest
 	@echo "Testing of doctests in the sources finished, look at the " \
 	      "results in $(BUILDDIR)/doctest/output.txt."
+
+push-latest:
+    cd $(BUILDDIR) && \
+    test -d $(DOCREPONAME) || git clone $(DOCREPOURL) $(DOCREPONAME) && \
+    cd $(DOCREPONAME) && \
+	git pull origin gh-pages && \
+    test -d latest || mkdir latest && touch latest/_ && \
+    rm -r latest/* && \
+    cp -r ../html/* latest/ && \
+    git add latest/ && \
+    git commit -am "Pushed latest docs at $(date)" && \
+    git push
+
+push-release:
+    cd $(BUILDDIR) && \
+    test -d $(DOCREPONAME) || git clone $(DOCREPOURL) $(DOCREPONAME) && \
+    cd $(DOCREPONAME) && \
+	git pull origin gh-pages && \
+    test -d $(RELEASE) || mkdir $(RELEASE) && touch $(RELEASE)/_ && \
+    rm -r $(RELEASE)/* && \
+    cp -r ../html/* $(RELEASE)/ && \
+    git add $(RELEASE)/ && \
+    git commit -am "Pushed $(RELEASE) docs at $(date)" && \
+    git push
+
+push-root:
+    cd $(BUILDDIR) && \
+    test -d $(DOCREPONAME) || git clone $(DOCREPOURL) $(DOCREPONAME) && \
+    cd $(DOCREPONAME) && \
+	git pull origin gh-pages && \
+    rm -rf libref previous _sources _static *.html *.js *.inv  && \
+    cp -r ../html/* . && \
+    git add . && \
+    git commit -am "Pushed root-level docs at $(date)" && \
+    git push
+
+
