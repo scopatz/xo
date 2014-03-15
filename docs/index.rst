@@ -11,7 +11,7 @@
 exofrills - when ``nano`` is too much
 =====================================
 Have you ever been frustrated that your text editor wasn't doing what you wanted?
-Angered that you can't remeber...
+Angered that you can't remember...
 
 * ...how to find help? 
 * ...what ``:wq`` means? 
