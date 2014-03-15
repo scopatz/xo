@@ -10,12 +10,91 @@
 
 exofrills - when ``nano`` is too much
 =====================================
+Have you ever been frustrated, angered, 
 
-Please fork xo from `github <https://github.com/scopatz/xo>`_:
+-----------
+
+.. raw:: html
+
+    <div style="text-align:right;">
+        <img src="_static/whatis.png">
+    </div>
+
+brutally lightweight
+====================
+The exofrills (``xo``) text editor is designed to just provide the features that 
+you need to program effectively and nothing else. It is *ridiculously* lightweight
+and only relies on Python 3, `urwid <http://urwid.org/>`_, and 
+`pygments <http://pygments.org/>`_.
+
+**Current Features:**
+
+    * Less than 850 lines of code in a single file!
+    * Syntax highlighting!
+    * Regular expression matching and replacing!
+    * Search history caching!
+    * WTFPL licensed!
+    * Fully customizable!
+    * Start at non-origin location!
+    * Hop between words on a line!
+    * Jump to anywhere in the file!
+    * Whole file insertion!
+    * Beginner friendly - maybe you are new to words!
+    * Copy and paste text!
+    * Line and column status!
+    * Only one row of non-text editing space!
+    * Both saving & loading!
+
+If you ask for more features *I will probably say no!* Just fork xo yourself.
+
+**Writing text editors is not hard!**  Make one your own today.
+
+-----------
+
+.. raw:: html
+
+    <div style="text-align:right;">
+        <img src="_static/50less.png">
+    </div>
+
+**exofrills now has 50% less characters in its name than other industry leaders!**
+
+====== ===== ====== ===== ====== ===== ====== =====
+vi     2     vim    3     nano   3     pico   4
+**xo** **2** cat    3     less   4     emacs  5
+====== ===== ====== ===== ====== ===== ====== =====
+
+-----------
+
+get xo
+======
+Fork xo from `github <https://github.com/scopatz/xo>`_:
 
 .. code-block:: bash
 
     git clone https://github.com/scopatz/xo.git
 
+-----------
 
+key commands
+============
+:esc: get help
+:ctrl + o: save file (write-out)
+:ctrl + x: exit (does not save)
 
+:meta + s: select pygments style
+:ctrl + f: insert file at current position
+:ctrl + y: go to line & column (yalla, let's bounce)
+
+:ctrl + k: cuts the current line to the clipboard
+:ctrl + u: pastes the clipboard to the current line
+:ctrl + t: clears the clipboard (these spell K-U-T)
+
+:ctrl + w: set regular expression and jump to first match
+:meta + w: jump to next match of current regular expression
+:ctrl + r: set substitution for regular expression and replace first match
+:meta + r: replace next match of current regular expression
+
+-----------
+
+~xo <A3
