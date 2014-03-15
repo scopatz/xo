@@ -531,19 +531,13 @@ class LineWalker(urwid.ListWalker):
         rawlines.reverse()
 
 class MainDisplay(object):
-    base_palette = [
-        ('body', 'default', 'default'),
-        ('foot', 'black', 'dark blue', 'bold'),
-        ('key', 'black', 'dark magenta', 'underline'),
-        ]
+    base_palette = [('body', 'default', 'default'),
+                    ('foot', 'black', 'dark blue', 'bold'),
+                    ('key', 'black', 'dark magenta', 'underline'),]
         
-    status_text = ('foot', [
-        "xo    ",
-        ('key', "^x"), " exit ",
-        ('key', "^o"), " save ",
-        ('key', "esc"), " help ",
-        ""
-        ])
+    status_text = ('foot', ["xo    ", ('key', "^x"), " exit ",
+                                      ('key', "^o"), " save ",
+                                      ('key', "esc"), " help ", ""])
     
     def __init__(self, name):
         self.save_name = name
@@ -627,7 +621,6 @@ class MainDisplay(object):
                 self.reset_status(status="YOLO!   ")
             else:
                 break
-
 
     def seek_match(self):
         """Finds and jumps to the next match for the current query."""
@@ -851,3 +844,4 @@ def main():
 
 if __name__=="__main__": 
     main()
+

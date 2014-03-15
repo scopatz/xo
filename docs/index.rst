@@ -29,8 +29,8 @@ A small, brave world awaits!
 
 brutally lightweight
 ====================
-The exofrills (``xo``) text editor is designed to just provide the features that 
-you need to program effectively and nothing else. It is *ridiculously* lightweight
+The exofrills (``xo``, pronounced 'ex-oh') text editor is designed to just provide 
+the features that you need to program effectively and nothing else. It is *ridiculously* lightweight
 and only relies on Python 3, `urwid <http://urwid.org/>`_, and 
 `pygments <http://pygments.org/>`_.
 
@@ -42,7 +42,7 @@ and only relies on Python 3, `urwid <http://urwid.org/>`_, and
     * Search history caching!
     * WTFPL licensed!
     * Fully customizable!
-    * Start at non-origin location!
+    * Start at non-origin locations!
     * Hop between words on a line!
     * Jump to anywhere in the file!
     * Whole file insertion!
@@ -100,11 +100,21 @@ vi     2     vim    3     nano   4     pico   4
 
 get xo
 ======
+Install from the cheeese shop with ``pip`` or ``easy_install``:
+
+.. code-block:: bash
+
+    $ pip install exofrills
+
+.. code-block:: bash
+
+    $ easy_install exofrills
+
 Fork xo from `github <https://github.com/scopatz/xo>`_:
 
 .. code-block:: bash
 
-    git clone https://github.com/scopatz/xo.git
+    $ git clone https://github.com/scopatz/xo.git
 
 -----------
 
@@ -130,3 +140,5 @@ key commands
 -----------
 
 ~xo <A3
+
+
