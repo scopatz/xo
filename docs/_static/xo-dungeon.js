@@ -156,6 +156,7 @@ function initXoDungeon() {
 	eng = new ut.Engine(term, getDungeonTile, map[0].length, map.length);
 	// Initialize input
 	ut.initInput(onKeyDown);
+	console.log(xomap.join('\n'));
 }
 
 
