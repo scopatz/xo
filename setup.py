@@ -8,7 +8,7 @@ except ImportError:
 VERSION = "0.1"
 
 setup_kwargs = {
-    "version": VERSION,
+    "version": VERSION + '.5',
     "description": 'exofrills text editor',
     "author": 'Anthony Scopatz',
     "author_email": 'scopatz@gmail.com',
@@ -22,11 +22,13 @@ setup_kwargs = {
         "Topic :: Software Development :: Build Tools",
         ],
     "zip_safe": False,
+    "data_files": [("", ['license', 'readme.rst']),],
     }
 
 if have_setuptools:
     setup_kwargs['install_requires'] = [
         'Pygments >= 1.6',
+        'urwid >= 1.1.1',
         ]
 setup(
     name='exofrills',
@@ -35,4 +37,6 @@ setup(
     long_description=open('readme.rst').read(),
     **setup_kwargs
     )
+
+
 
