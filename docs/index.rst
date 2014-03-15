@@ -67,7 +67,7 @@ If you ask for more features *I will probably say no!* Just fork xo yourself.
 **exofrills now has 50% less characters in its name than other industry leaders!**
 
 ====== ===== ====== ===== ====== ===== ====== =====
-vi     2     vim    3     nano   3     pico   4
+vi     2     vim    3     nano   4     pico   4
 **xo** **2** cat    3     less   4     emacs  5
 ====== ===== ====== ===== ====== ===== ====== =====
 
