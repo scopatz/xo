@@ -8,18 +8,18 @@ except ImportError:
 VERSION = "0.1"
 
 setup_kwargs = {
-    "version": VERSION + '.5',
+    "version": VERSION + '.7',
     "description": 'exofrills text editor',
     "author": 'Anthony Scopatz',
     "author_email": 'scopatz@gmail.com',
     "url": 'http://exofrills.org/',
     "download_url": "https://github.com/scopatz/xo/zipball/" + VERSION,
     "classifiers": [
-        "License :: OSI Approved :: BSD License",
+        "License :: OSI Approved",
         "Intended Audience :: Developers",
         "Programming Language :: Python :: 3",
         "Topic :: Utilities",
-        "Topic :: Software Development :: Build Tools",
+        "Topic :: Text Editors",
         ],
     "zip_safe": False,
     "data_files": [("", ['license', 'readme.rst']),],
@@ -37,6 +37,7 @@ setup(
     long_description=open('readme.rst').read(),
     **setup_kwargs
     )
+
 
 
 
