@@ -1,0 +1,20 @@
+@import url("cloud.css");
+
+div.highlight pre,
+div.highlight-python pre
+{
+    border-width: 0px 3px;
+
+    border-radius: 6px;
+    -moz-border-radius: 6px;
+    -webkit-border-radius: 6px;
+}
+
+
+div.frontpage-images.container
+{
+    text-align: center;
+    margin-top: 2.5em;
+    margin-bottom: 2.5em;
+}
+

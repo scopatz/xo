@@ -1,0 +1,25 @@
+@charset "utf-8";
+
+.unicodetiles {
+	font-family: "DejaVuSansMono", "DejaVu Sans Mono", monospace;
+	white-space: pre;
+	text-align: center;
+	line-height: 1;
+	letter-spacing: 0px;
+	display: inline-block;
+}
+
+.unicodetiles div {
+	float: left;
+	height: 1em;
+}
+
+.unicodetiles br {
+	clear: both;
+}
+
+#game {
+    font-size: 16px;
+    margin-top: 1em;
+    background-color: #000;
+}
