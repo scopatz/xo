@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """exofrills: your text has been edited...but you are still hungry.
 
 key commands
