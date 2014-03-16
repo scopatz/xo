@@ -13,6 +13,9 @@ You might be looking for help, but this is all I can do::
     optional arguments:
       -h, --help  show this help message and exit
 
+Someone else made a `video tutorial <http://youtu.be/bPq8fncImtQ>`_ and posted 
+it on YouTube within an hour of the 0.1 release.
+
 get xo
 ------
 Install from the cheeese shop with ``pip`` or ``easy_install``:
@@ -50,3 +53,4 @@ key commands
 :meta + w: jump to next match of current regular expression
 :ctrl + r: set substitution for regular expression and replace first match
 :meta + r: replace next match of current regular expression
+
