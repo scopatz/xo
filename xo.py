@@ -129,8 +129,40 @@ DEFAULT_RC = {
         '248': 'a8a8a8', '249': 'b2b2b2', '250': 'bcbcbc', '251': 'c6c6c6',
         '252': 'd0d0d0', '253': 'dadada', '254': 'e4e4e4', '255': 'eeeeee',
         },
+    'keybindings': {
+            "save": "ctrl o",
+            "exit": "ctrl x",
+            "cut": "ctrl k",
+            "paste": "ctrl u",
+            "clear_clipboard": "ctrl t",
+            "jump": "ctrl y",
+            "insert": "ctrl f",
+            "style": "meta s",
+            "find": "ctrl w",
+            "find_next": "meta w",
+            "replace": "ctrl r",
+            "replace_next": "meta r",
+        },
     }
 DEFAULT_RC['rgb_to_short'] = {v: k for k, v in DEFAULT_RC['short_to_rgb'].items()}
+
+help = ('\n'.join(__doc__.splitlines()[:5]) + """
+{save}: save file (write-out)
+{exit}: exit (does not save)
+
+{style}: select pygments style
+{insert}: insert file at current position
+{jump}: go to line & column (yalla, let's bounce)
+
+{cut}: cuts the current line to the clipboard
+{paste}: pastes the clipboard to the current line
+{clear_clipboard}: clears the clipboard (these spell K-U-T)
+
+{find}: set regular expression and jump to first match
+{find_next}: jump to next match of current regular expression
+{replace}: set substitution for regular expression and replace first match
+{replace_next}: replace next match of current regular expression
+""")
 
 def merge_value(v1, v2):
     if isinstance(v1, Mapping):
@@ -543,6 +575,7 @@ class MainDisplay(object):
         self.save_name = name
         self.load_rc()
         self.set_tabs()
+        self.set_keybindings()
         self.walker = LineWalker(name, main_display=self, tabsize=self.tabsize)
         self.listbox = urwid.ListBox(self.walker)
         self.status = urwid.AttrMap(urwid.Text(self.status_text), "foot")
@@ -580,6 +613,15 @@ class MainDisplay(object):
                 break
         else:
             self.tabsize, self.must_retab = self.rc["tabs"]["default"]
+
+    def set_keybindings(self):
+        self.keybindings = self.rc["keybindings"]
+        exit_text = '-'.join(self.keybindings['exit'].split())
+        exit_text = exit_text.replace('ctrl-', '^')
+        self.status_text[1][1] = ('key', exit_text)
+        save_text = '-'.join(self.keybindings['save'].split())
+        save_text = save_text.replace('ctrl-', '^')
+        self.status_text[1][3] = ('key', save_text)
 
     def register_palette(self, style_class):
         """Converts pygmets style to urwid palatte"""
@@ -659,10 +701,10 @@ class MainDisplay(object):
         """Where the main app handles keypresses."""
         status = "xo      "
         fp = self.view.focus_position
-        if k == "ctrl o":
+        if k == self.keybindings["save"]:
             self.save_file()
             status = "saved   "
-        elif k == "ctrl x":
+        elif k == self.keybindings["exit"]:
             self.dump_cache()
             raise urwid.ExitMainLoop()
         elif k == "delete" and fp == "body":
@@ -693,13 +735,13 @@ class MainDisplay(object):
             if w:
                 self.listbox.set_focus(pos, 'below')
                 self.loop.process_input(["end"])
-        elif k == "ctrl k":
+        elif k == self.keybindings["cut"]:
             self.walker.cut_to_clipboard()
             status = "cut     "
-        elif k == "ctrl u":
+        elif k == self.keybindings["paste"]:
             self.walker.paste_from_clipboard()
             status = "pasted  "
-        elif k == "ctrl t":
+        elif k == self.keybindings["clear_clipboard"]:
             self.walker.clear_clipboard()
             status = "cleared "
         elif k == "ctrl left" or k == "meta left":
@@ -716,22 +758,22 @@ class MainDisplay(object):
             m = re_word.search(w.edit_text or "", xpos)
             word_pos = xpos if m is None else m.end()
             w.set_edit_pos(word_pos)
-        elif k == "ctrl y":
+        elif k == self.keybindings["jump"]:
             curr_footer = self.view.contents["footer"][0]
             if curr_footer is self.status:
                 self.view.contents["footer"] = (
                     urwid.AttrMap(GotoEditor("line & col: ", ""), "foot"), None)
                 self.view.focus_position = "footer"
-        elif k == "ctrl w":
+        elif k == self.keybindings["find"]:
             curr_footer = self.view.contents["footer"][0]
             if curr_footer is self.status:
                 self.view.contents["footer"] = (
                     urwid.AttrMap(QueryEditor(caption="re: ", edit_text="", 
                                   deq=self.queries), "foot"), None)
                 self.view.focus_position = "footer"
-        elif k == "meta w":
+        elif k == self.keybindings["find_next"]:
             status = self.seek_match() or status
-        elif k == "ctrl r":
+        elif k == self.keybindings["replace"]:
             curr_footer = self.view.contents["footer"][0]
             w = curr_footer.original_widget
             if isinstance(w, QueryEditor):
@@ -744,14 +786,14 @@ class MainDisplay(object):
                     urwid.AttrMap(ReplacementEditor(caption="sub: ", edit_text="", 
                                   deq=self.replacements), "foot"), None)
                 self.view.focus_position = "footer"
-        elif k == "meta r":
+        elif k == self.keybindings["replace_next"]:
             w = self.view.contents["footer"][0].original_widget
             if isinstance(w, QueryEditor):
                 status = w.run(self) or status
                 self.view.focus_position = "body"
                 self.view.contents["footer"] = (self.status, None)
             status = self.replace_match() or status
-        elif k == "meta s":
+        elif k == self.keybindings["style"]:
             curr_footer = self.view.contents["footer"][0]
             if curr_footer is self.status:
                 cap = "available styles: {0}\nchoose one: "
@@ -759,7 +801,7 @@ class MainDisplay(object):
                 self.view.contents["footer"] = (urwid.AttrMap(StyleSelectorEditor(
                     caption=cap, edit_text=""), "foot"), None)
                 self.view.focus_position = "footer"
-        elif k == "ctrl f":
+        elif k == self.keybindings["insert"]:
             curr_footer = self.view.contents["footer"][0]
             if curr_footer is self.status:
                 self.view.contents["footer"] = (urwid.AttrMap(FileSelectorEditor(
@@ -769,7 +811,8 @@ class MainDisplay(object):
             curr_footer = self.view.contents["footer"][0]
             if curr_footer is self.status:
                 self.view.contents["footer"] = (
-                    urwid.AttrMap(urwid.Text(__doc__.strip()), "foot"), None)
+                    urwid.AttrMap(urwid.Text(help.format(**self.keybindings)),
+                    "foot"), None)
                 self.view.focus_position = "footer"
             else:
                 self.view.contents["footer"] = (self.status, None)
