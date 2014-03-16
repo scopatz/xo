@@ -141,7 +141,7 @@ DEFAULT_RC = {
             "find": "ctrl w",
             "find_next": "meta w",
             "replace": "ctrl r",
-            "repalce_next": "meta r",
+            "replace_next": "meta r",
         },
     }
 DEFAULT_RC['rgb_to_short'] = {v: k for k, v in DEFAULT_RC['short_to_rgb'].items()}
@@ -714,7 +714,7 @@ class MainDisplay(object):
         elif k == self.keybindings["paste"]:
             self.walker.paste_from_clipboard()
             status = "pasted  "
-        elif k == self.keybindins["clear_clipboard"]:
+        elif k == self.keybindings["clear_clipboard"]:
             self.walker.clear_clipboard()
             status = "cleared "
         elif k == "ctrl left" or k == "meta left":
@@ -766,7 +766,7 @@ class MainDisplay(object):
                 self.view.focus_position = "body"
                 self.view.contents["footer"] = (self.status, None)
             status = self.replace_match() or status
-        elif k == self.keybinding["style"]:
+        elif k == self.keybindings["style"]:
             curr_footer = self.view.contents["footer"][0]
             if curr_footer is self.status:
                 cap = "available styles: {0}\nchoose one: "
@@ -774,7 +774,7 @@ class MainDisplay(object):
                 self.view.contents["footer"] = (urwid.AttrMap(StyleSelectorEditor(
                     caption=cap, edit_text=""), "foot"), None)
                 self.view.focus_position = "footer"
-        elif k == self.keybinding["insert"]:
+        elif k == self.keybindings["insert"]:
             curr_footer = self.view.contents["footer"][0]
             if curr_footer is self.status:
                 self.view.contents["footer"] = (urwid.AttrMap(FileSelectorEditor(
@@ -859,7 +859,4 @@ def main():
 
 if __name__=="__main__": 
     main()
-
-
-
 
