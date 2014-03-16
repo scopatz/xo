@@ -14,7 +14,7 @@ if sys.version_info[0] < 3:
 VERSION = "0.1"
 
 setup_kwargs = {
-    "version": VERSION + '.9',
+    "version": VERSION + '.10',
     "description": 'exofrills text editor',
     "author": 'Anthony Scopatz',
     "author_email": 'scopatz@gmail.com',
