@@ -800,7 +800,9 @@ class MainDisplay(object):
         
         while walker.file is not None:  # grab remaining lines
             newlines.append(ensure_endswith_newline(walker.read_next_line()))
-            
+
+        last_line = newlines[-1]
+        newlines[-1] = last_line[:-1] if last_line.endswith('\n') else last_line
         with open(self.save_name, "w") as f:  
             for newline in newlines:
                 f.write(newline)
@@ -844,5 +846,4 @@ def main():
 
 if __name__=="__main__": 
     main()
-
 
