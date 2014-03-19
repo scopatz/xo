@@ -143,6 +143,10 @@ DEFAULT_RC = {
         "replace": "ctrl r",
         "replace_next": "meta r",
         },
+    'multiline_tokens': {
+        'default': {},
+        'py': {'"""': '"""', "'''": "'''"},
+        }
     }
 DEFAULT_RC['rgb_to_short'] = {v: k for k, v in DEFAULT_RC['short_to_rgb'].items()}
 
@@ -219,7 +223,7 @@ def sanitize_text(t, tabsize):
 class LineEditor(urwid.Edit):
     """Line editor with highligthing, column numbering, and smart home."""
     def __init__(self, edit_text="", lexer=None, main_display=None, smart_home=True, 
-                 tabsize=None, **kwargs):
+                 tabsize=None, multiline_tokens=(), **kwargs):
         self.original_text = edit_text
         super().__init__(edit_text=sanitize_text(edit_text, tabsize), **kwargs)
         if lexer is None:
@@ -228,9 +232,30 @@ class LineEditor(urwid.Edit):
         self.tabsize = tabsize
         self.main_display = main_display
         self.smart_home = smart_home
+        self.multiline_tokens = multiline_tokens
+        self.mlo = '/*'
+        self.mlc = '*/'
+        self.needs_mlo = False
+        self.needs_mlc = False
 
     def get_text(self):
         etext = self.get_edit_text()
+        #if not (self.needs_mlo or self.needs_mlc) and etext.count(self.mlo)%2 == 1:
+        #if etext.count(self.mlo)%2 == 1:
+        #    #import pdb; pdb.set_trace()
+        #    w, pos = self.main_display.walker.get_focus()
+        #    w.needs_mlc = True
+        #    while w is not None and w.edit_text.count(self.mlc) == 0:
+        #        w, pos = self.main_display.walker.get_next(pos)
+        #        if w is None:
+        #            break
+        #        w.needs_mlo = w.needs_mlc = True
+        #    if w is not None:
+        #        w.needs_mlo = True
+        #toktext = (self.mlo if self.needs_mlo else "") + etext + \
+        #          (self.mlc if self.needs_mlc else "")
+        #tokens = self.lexer.get_tokens(toktext)
+        #attrib = [(tok, len(s)) for tok, s in tokens][int(self.needs_mlo):]
         tokens = self.lexer.get_tokens(etext)
         attrib = [(tok, len(s)) for tok, s in tokens]
         return etext, attrib
@@ -251,6 +276,7 @@ class LineEditor(urwid.Edit):
         elif orig_allow_tab and key == "tab":
             key = " "*(self.tabsize - (self.edit_pos%self.tabsize))
             self.insert_text(key)
+        #self.get_text()
         return rtn
 
 class GotoEditor(urwid.Edit):
@@ -357,7 +383,7 @@ class FileSelectorEditor(urwid.Edit):
 class LineWalker(urwid.ListWalker):
     """ListWalker-compatible class for lazily reading file contents."""
     
-    def __init__(self, name, main_display, tabsize):
+    def __init__(self, name, main_display, tabsize, multiline_tokens=()):
         self.name = name
         self.file = f = open(name)
         try:
@@ -377,10 +403,12 @@ class LineWalker(urwid.ListWalker):
         self.clipboard = None
         self.clipboard_pos = None
         self.lexer = lexer
+        self.multiline_tokens = multiline_tokens
         self.main_display = main_display
         self.line_kwargs = dict(caption="", allow_tab=True, lexer=lexer, 
                                 wrap='clip', main_display=main_display, 
-                                smart_home=True, tabsize=tabsize)
+                                smart_home=True, tabsize=tabsize,
+                                multiline_tokens=multiline_tokens)
    
     def get_focus(self): 
         return self._get_at_pos(self.focus)
@@ -560,7 +588,9 @@ class MainDisplay(object):
     def init_file(self, name):
         self.save_name = name
         self.set_tabs()
-        self.walker = LineWalker(name, main_display=self, tabsize=self.tabsize)
+        self.set_multiline_tokens()
+        self.walker = LineWalker(name, main_display=self, tabsize=self.tabsize, 
+                                 multiline_tokens=self.multiline_tokens)
         self.listbox = urwid.ListBox(self.walker)
         self.status = urwid.AttrMap(urwid.Text(self.status_text), "foot")
         self.view = urwid.Frame(urwid.AttrMap(self.listbox, 'body'),
@@ -598,6 +628,18 @@ class MainDisplay(object):
         else:
             self.tabsize, self.must_retab = self.rc["tabs"]["default"]
 
+    def set_multiline_tokens(self):
+        name = self.save_name
+        for ml in sorted(self.rc["multiline_tokens"].items(), reverse=True):
+            # reverse ensures longest match 
+            if name.endswith(ml[0]):
+                mlt = ml[1]
+                break
+        else:
+            mlt = self.rc["multiline_tokens"]["default"]
+        self.multiline_tokens = mlt = {k: (v, k == v) for k, v in mlt.items()}
+        mlt[None] = (None, False)
+
     def set_keybindings(self):
         self.keybindings = self.rc["keybindings"]
         exit_text = '-'.join(self.keybindings['exit'].split())
@@ -612,7 +654,11 @@ class MainDisplay(object):
         default = 'default'
         palette = list(self.base_palette)
         mapping = self.rc['rgb_to_short']
-        for tok, st in style_class.styles.items():
+        for tok in style_class.styles.keys():
+            for t in tok.split()[::-1]:
+                st = style_class.styles[t]
+                if '#' in st:
+                    break
             if '#' not in st:
                 st = ''
             st = st.split()
