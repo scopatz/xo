@@ -231,32 +231,17 @@ class LineEditor(urwid.Edit):
         self.lexer = lexer
         self.tabsize = tabsize
         self.main_display = main_display
+        self.walker = main_display.walker
         self.smart_home = smart_home
         self.multiline_tokens = multiline_tokens
-        self.mlo = '/*'
-        self.mlc = '*/'
-        self.needs_mlo = False
-        self.needs_mlc = False
 
     def get_text(self):
         etext = self.get_edit_text()
-        #if not (self.needs_mlo or self.needs_mlc) and etext.count(self.mlo)%2 == 1:
-        #if etext.count(self.mlo)%2 == 1:
-        #    #import pdb; pdb.set_trace()
-        #    w, pos = self.main_display.walker.get_focus()
-        #    w.needs_mlc = True
-        #    while w is not None and w.edit_text.count(self.mlc) == 0:
-        #        w, pos = self.main_display.walker.get_next(pos)
-        #        if w is None:
-        #            break
-        #        w.needs_mlo = w.needs_mlc = True
-        #    if w is not None:
-        #        w.needs_mlo = True
-        #toktext = (self.mlo if self.needs_mlo else "") + etext + \
-        #          (self.mlc if self.needs_mlc else "")
-        #tokens = self.lexer.get_tokens(toktext)
-        #attrib = [(tok, len(s)) for tok, s in tokens][int(self.needs_mlo):]
-        tokens = self.lexer.get_tokens(etext)
+        #tokens = self.lexer.get_tokens(etext)
+        #attrib = [(tok, len(s)) for tok, s in tokens]
+        tokens = self.walker.get_tokens(self)
+        print(tokens, file=sys.stderr)
+        #attrib = [(tok, len(s)) for tok, s in tokens if len(s) > 0]
         attrib = [(tok, len(s)) for tok, s in tokens]
         return etext, attrib
 
@@ -276,7 +261,6 @@ class LineEditor(urwid.Edit):
         elif orig_allow_tab and key == "tab":
             key = " "*(self.tabsize - (self.edit_pos%self.tabsize))
             self.insert_text(key)
-        #self.get_text()
         return rtn
 
 class GotoEditor(urwid.Edit):
@@ -409,7 +393,12 @@ class LineWalker(urwid.ListWalker):
                                 wrap='clip', main_display=main_display, 
                                 smart_home=True, tabsize=tabsize,
                                 multiline_tokens=multiline_tokens)
-   
+
+    def get_pos(self, w):
+        for pos, line in enumerate(self.lines):
+            if w is line:
+                return pos
+
     def get_focus(self): 
         return self._get_at_pos(self.focus)
     
@@ -532,6 +521,30 @@ class LineWalker(urwid.ListWalker):
         s = q.sub(r, text[xpos:], count=1)
         w.set_edit_text(text[:xpos] + s)
         w.set_edit_pos(xpos)
+
+    def get_tokens(self, w, offset=20):
+        pos = self.get_pos(w)
+        #print(pos, file=sys.stderr)
+        lbound = max(0, pos - offset)
+        #print(pos, lbound, repr(w.edit_text), file=sys.stderr)
+        viewtext = "\n".join([l.edit_text for l in self.lines[lbound:pos+offset]])
+        nnewlines = 0
+        wtokens = []
+        for token, s in self.lexer.get_tokens(viewtext):
+            if len(s) == 0:
+                continue
+            if '\n' not in s:
+                wtokens.append((token, s))
+                continue
+            spl = s.split('\n')
+            wtokens.append((token, spl[0]))
+            for text in spl[1:]:
+                if nnewlines == min(pos, offset):
+                    return wtokens
+                nnewlines += 1
+                wtokens = []
+                wtokens.append((token, text))
+        return wtokens
 
     #
     # Clipboard methods
