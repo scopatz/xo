@@ -146,7 +146,8 @@ DEFAULT_RC = {
         "replace": "ctrl r",
         "replace_next": "meta r",
         },
-    'multiline_window': 500,  # this is good size to balance response vs long comments
+    'multiline_window': 750,  # this is good size to balance response vs long comments
+    'number_of_windows': 1,   # maximum nuber of windows to pane.
     }
 DEFAULT_RC['rgb_to_short'] = {v: k for k, v in DEFAULT_RC['short_to_rgb'].items()}
 
@@ -236,13 +237,6 @@ class LineEditor(urwid.Edit):
 
     def get_text(self):
         etext = self.get_edit_text()
-        #tokens = list(self.lexer.get_tokens(etext))
-        #attrib = [(tok, len(s)) for tok, s in tokens]
-        #tokens = list(self.lexer.get_tokens(etext))
-        #bad = (Token.Error, Token.Other, Token.Comment.Multiline, Token.Literal.String.Doc)
-        #print(self.edit_text, tokens, file=sys.stderr)
-        #if any([tok in bad for tok, s in tokens]):
-        #    tokens = self.walker.get_tokens(self)
         tokens = self.walker.get_tokens(self)
         attrib = [(tok, len(s)) for tok, s in tokens]
         return etext, attrib
@@ -374,8 +368,9 @@ class FileSelectorEditor(urwid.Edit):
 
 class LineWalker(urwid.ListWalker):
     """ListWalker-compatible class for lazily reading file contents."""
-    
-    def __init__(self, name, main_display, tabsize, multiline_window=500):
+
+    def __init__(self, name, main_display, tabsize, multiline_window=1500, 
+                 number_of_windows=1):
         self.name = name
         self.file = f = open(name)
         try:
@@ -399,6 +394,7 @@ class LineWalker(urwid.ListWalker):
         self.all_tokens = None
         self._etext = lambda w: w.edit_text
         self.multiline_window = multiline_window
+        self.number_of_windows = number_of_windows
         self.main_display = main_display
         self.line_kwargs = dict(caption="", allow_tab=True, lexer=lexer, 
                                 wrap='clip', main_display=main_display, 
@@ -569,6 +565,9 @@ class LineWalker(urwid.ListWalker):
         alltokens = self.all_tokens
         pos = self.get_pos(w)
         window = window or self.multiline_window
+        if len(self.lines) > window * self.number_of_windows:
+            # Short circut windowing if we have too many lines.
+            return self.get_basic_tokens(w)
         if alltokens is None:
             # this funny business with windowing makes typing responsive
             self.all_tokens = alltokens = [None] * len(self.lines)
@@ -579,8 +578,7 @@ class LineWalker(urwid.ListWalker):
         wtoks = alltokens[pos]
         if wtoks is None:
             # for adding or remving line (last resort - suffocation, no breathing)
-            self._compute_slice(pos, window, alltokens)
-            wtoks = self.get_tokens(w, window=window)
+            alltokens[pos] = wtoks = self.get_basic_tokens(w)
         return wtoks
 
     def get_basic_tokens(self, w):
@@ -611,11 +609,11 @@ class LineWalker(urwid.ListWalker):
         focus = self.focus
         if focus + 1 == len(self.lines):
            return  # don't cut last line
+        self.all_tokens = None
         if (self.clipboard is None) or (self.clipboard_pos is None) or \
            (focus != self.clipboard_pos):
             self.clipboard = []
         w = self.lines.pop(focus)
-        self.all_tokens = None
         del self.w_pos[w]
         self.clipboard.append(w)
         self.clipboard_pos = focus
@@ -628,10 +626,12 @@ class LineWalker(urwid.ListWalker):
             return
         self.all_tokens = None
         for line in cb[::-1]:
+            self.all_tokens = None
             newline = LineEditor(edit_text=line.get_edit_text(), **self.line_kwargs)
             newline.original_text = None
             self.lines.insert(self.focus, newline)
             self.w_pos[newline] = self.focus
+        self.all_tokens = None
         self.set_focus(self.focus + len(cb))
 
     def clear_clipboard(self):
@@ -644,9 +644,11 @@ class LineWalker(urwid.ListWalker):
         rawlines.reverse()
         self.all_tokens = None
         for rawline in rawlines:
+            self.all_tokens = None
             newline = LineEditor(edit_text=rawline, **self.line_kwargs)
             self.lines.insert(pos, newline)
             self.w_pos[newline] = pos
+        self.all_tokens = None
         rawlines.reverse()
 
 class MainDisplay(object):
@@ -750,6 +752,7 @@ class MainDisplay(object):
         self.loop = loop
         self.register_palette(get_style_by_name(self.rc["style"]))
         self.walker.goto(line, col)
+        self.walker.all_tokens = None
         while True:
             try:
                 self.loop.run()
