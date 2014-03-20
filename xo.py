@@ -967,6 +967,7 @@ def touch(filename):
         os.utime(filename, None)
 
 def path_line_col(x):
+    x = x.rstrip(':')
     plc = x.rsplit(':', 2)
     plc += [1] * (3 - len(plc))
     return plc[0], int(plc[1] or 1), int(plc[2] or 1)
