@@ -401,6 +401,7 @@ class LineWalker(urwid.ListWalker):
         self.lexer = lexer
         self.w_pos = {}
         self.all_tokens = None
+        self._etext = lambda w: w.edit_text
         self.main_display = main_display
         self.line_kwargs = dict(caption="", allow_tab=True, lexer=lexer, 
                                 wrap='clip', main_display=main_display, 
@@ -556,46 +557,37 @@ class LineWalker(urwid.ListWalker):
         w.set_edit_text(text[:xpos] + s)
         w.set_edit_pos(xpos)
 
-    def _get_tokens(self, w, offset=5):
-        pos = self.get_pos(w)
-        lbound = max(0, pos - offset)
-        maxnnewline = min(pos, offset)
-        viewtext = "\n".join([l.edit_text for l in self.lines[lbound:pos+offset]])
-        nnewlines = 0
-        wtokens = []
-        for token, s in self.lexer.get_tokens(viewtext):
-            if len(s) == 0:
-                continue
-            if '\n' not in s:
-                wtokens.append((token, s))
-                continue
-            spl = s.split('\n')
-            wtokens.append((token, spl[0]))
-            for text in spl[1:]:
-                if nnewlines == maxnnewline:
-                    return wtokens
-                nnewlines += 1
-                del wtokens[:]
-                wtokens.append((token, text))
-        return wtokens
-
-    def get_tokens(self, w):
+    # 
+    # tokenization
+    #
+    def get_tokens(self, w, window=500):
+        """Computes the tokens for a widget, but first tries to look them up from 
+        a cache on the class.
+        """
         alltokens = self.all_tokens
-        if alltokens is None:
-            self.all_tokens = alltokens = self.get_all_tokens()
         pos = self.get_pos(w)
+        if alltokens is None:
+            # this funny business with windowing makes typing responsive
+            llen = len(self.lines)
+            q = pos // window
+            slc = slice(max((q*window)-3, 0), min(((q+1)*window)+3, llen))
+            self.all_tokens = alltokens = [None] * llen
+            alltokens[slc] = self.get_all_tokens(lines=self.lines[slc])
         if pos >= len(alltokens):
-            return list(self.lexer.get_tokens(w.edit_text))
+            # for adding or removing lines
+            return self.get_basic_tokens(w)
         wtoks = alltokens[pos]
-        #if "".join([t[1] for t in wtoks]) != w.edit_text:
-        #    self.all_tokens = None
-        #    wtoks = self.get_tokens(w)
+        if wtoks is None:
+            # for adding or remving line (last resort - suffocation, no breathing)
+            alltokens[pos] = wtoks = self.get_basic_tokens(w)
         return wtoks
 
-    def get_all_tokens(self):
-#        t1 = time.time()
-        etext = lambda w: w.edit_text
-        viewtext = "\n".join(map(etext, self.lines))
+    def get_basic_tokens(self, w):
+        return list(self.lexer.get_tokens(w.edit_text))
+
+    def get_all_tokens(self, lines=None):
+        lines = lines or self.lines
+        viewtext = "\n".join(map(self._etext, lines))
         ltokens = []
         alltokens = []
         for token, s in self.lexer.get_tokens(viewtext):
@@ -609,7 +601,6 @@ class LineWalker(urwid.ListWalker):
             for text in spl[1:]:
                 alltokens.append(ltokens)
                 ltokens = [(token, text)]
-#        print("time: ", time.time() - t1, file=sys.stderr)
         return alltokens
     #
     # Clipboard methods
