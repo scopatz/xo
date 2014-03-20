@@ -560,6 +560,12 @@ class LineWalker(urwid.ListWalker):
     # 
     # tokenization
     #
+    def _compute_slice(self, pos, window, alltokens):
+        llen = len(self.lines)
+        q = pos // window
+        slc = slice(max((q*window)-3, 0), min(((q+1)*window)+3, llen))
+        alltokens[slc] = self.get_all_tokens(lines=self.lines[slc])
+
     def get_tokens(self, w, window=500):
         """Computes the tokens for a widget, but first tries to look them up from 
         a cache on the class.
@@ -568,18 +574,17 @@ class LineWalker(urwid.ListWalker):
         pos = self.get_pos(w)
         if alltokens is None:
             # this funny business with windowing makes typing responsive
-            llen = len(self.lines)
-            q = pos // window
-            slc = slice(max((q*window)-3, 0), min(((q+1)*window)+3, llen))
-            self.all_tokens = alltokens = [None] * llen
-            alltokens[slc] = self.get_all_tokens(lines=self.lines[slc])
+            self.all_tokens = alltokens = [None] * len(self.lines)
+            self._compute_slice(pos, window, alltokens)
         if pos >= len(alltokens):
             # for adding or removing lines
             return self.get_basic_tokens(w)
         wtoks = alltokens[pos]
         if wtoks is None:
             # for adding or remving line (last resort - suffocation, no breathing)
-            alltokens[pos] = wtoks = self.get_basic_tokens(w)
+            self._compute_slice(pos, window, alltokens)
+            #alltokens[pos] = wtoks = self.get_basic_tokens(w)
+            wtoks = self.get_tokens(w, window=window)
         return wtoks
 
     def get_basic_tokens(self, w):
