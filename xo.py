@@ -146,10 +146,7 @@ DEFAULT_RC = {
         "replace": "ctrl r",
         "replace_next": "meta r",
         },
-    'multiline_tokens': {
-        'default': {},
-        'py': {'"""': '"""', "'''": "'''"},
-        }
+    'multiline_window': 500,  # this is good size to balance response vs long comments
     }
 DEFAULT_RC['rgb_to_short'] = {v: k for k, v in DEFAULT_RC['short_to_rgb'].items()}
 
@@ -226,7 +223,7 @@ def sanitize_text(t, tabsize):
 class LineEditor(urwid.Edit):
     """Line editor with highligthing, column numbering, and smart home."""
     def __init__(self, edit_text="", lexer=None, main_display=None, smart_home=True, 
-                 tabsize=None, multiline_tokens=(), **kwargs):
+                 tabsize=None, **kwargs):
         self.original_text = edit_text
         super().__init__(edit_text=sanitize_text(edit_text, tabsize), **kwargs)
         if lexer is None:
@@ -236,7 +233,6 @@ class LineEditor(urwid.Edit):
         self.main_display = main_display
         self.walker = main_display.walker
         self.smart_home = smart_home
-        self.multiline_tokens = multiline_tokens
 
     def get_text(self):
         etext = self.get_edit_text()
@@ -379,7 +375,7 @@ class FileSelectorEditor(urwid.Edit):
 class LineWalker(urwid.ListWalker):
     """ListWalker-compatible class for lazily reading file contents."""
     
-    def __init__(self, name, main_display, tabsize, multiline_tokens=()):
+    def __init__(self, name, main_display, tabsize, multiline_window=500):
         self.name = name
         self.file = f = open(name)
         try:
@@ -402,11 +398,11 @@ class LineWalker(urwid.ListWalker):
         self.w_pos = {}
         self.all_tokens = None
         self._etext = lambda w: w.edit_text
+        self.multiline_window = multiline_window
         self.main_display = main_display
         self.line_kwargs = dict(caption="", allow_tab=True, lexer=lexer, 
                                 wrap='clip', main_display=main_display, 
-                                smart_home=True, tabsize=tabsize,
-                                multiline_tokens=multiline_tokens)
+                                smart_home=True, tabsize=tabsize)
 
     def get_pos(self, w):
         w_pos = self.w_pos
@@ -566,12 +562,13 @@ class LineWalker(urwid.ListWalker):
         slc = slice(max((q*window)-3, 0), min(((q+1)*window)+3, llen))
         alltokens[slc] = self.get_all_tokens(lines=self.lines[slc])
 
-    def get_tokens(self, w, window=500):
+    def get_tokens(self, w, window=None):
         """Computes the tokens for a widget, but first tries to look them up from 
         a cache on the class.
         """
         alltokens = self.all_tokens
         pos = self.get_pos(w)
+        window = window or self.multiline_window
         if alltokens is None:
             # this funny business with windowing makes typing responsive
             self.all_tokens = alltokens = [None] * len(self.lines)
@@ -583,7 +580,6 @@ class LineWalker(urwid.ListWalker):
         if wtoks is None:
             # for adding or remving line (last resort - suffocation, no breathing)
             self._compute_slice(pos, window, alltokens)
-            #alltokens[pos] = wtoks = self.get_basic_tokens(w)
             wtoks = self.get_tokens(w, window=window)
         return wtoks
 
@@ -669,9 +665,8 @@ class MainDisplay(object):
     def init_file(self, name):
         self.save_name = name
         self.set_tabs()
-        self.set_multiline_tokens()
         self.walker = LineWalker(name, main_display=self, tabsize=self.tabsize, 
-                                 multiline_tokens=self.multiline_tokens)
+                                 multiline_window=self.rc['multiline_window'])
         self.listbox = urwid.ListBox(self.walker)
         self.status = urwid.AttrMap(urwid.Text(self.status_text), "foot")
         self.view = urwid.Frame(urwid.AttrMap(self.listbox, 'body'),
@@ -708,18 +703,6 @@ class MainDisplay(object):
                 break
         else:
             self.tabsize, self.must_retab = self.rc["tabs"]["default"]
-
-    def set_multiline_tokens(self):
-        name = self.save_name
-        for ml in sorted(self.rc["multiline_tokens"].items(), reverse=True):
-            # reverse ensures longest match 
-            if name.endswith(ml[0]):
-                mlt = ml[1]
-                break
-        else:
-            mlt = self.rc["multiline_tokens"]["default"]
-        self.multiline_tokens = mlt = {k: (v, k == v) for k, v in mlt.items()}
-        mlt[None] = (None, False)
 
     def set_keybindings(self):
         self.keybindings = self.rc["keybindings"]
