@@ -25,6 +25,7 @@ import re
 import io
 import sys
 import json
+import time
 from glob import glob
 from itertools import zip_longest
 from collections import deque, Mapping, Sequence
@@ -241,12 +242,18 @@ class LineEditor(urwid.Edit):
         etext = self.get_edit_text()
         #tokens = list(self.lexer.get_tokens(etext))
         #attrib = [(tok, len(s)) for tok, s in tokens]
-        tokens = list(self.lexer.get_tokens(etext))
-        bad = (Token.Error, Token.Other)
-        if any([tok in bad for tok, s in tokens]):
-            tokens = self.walker.get_tokens(self)
+        #tokens = list(self.lexer.get_tokens(etext))
+        #bad = (Token.Error, Token.Other, Token.Comment.Multiline, Token.Literal.String.Doc)
+        #print(self.edit_text, tokens, file=sys.stderr)
+        #if any([tok in bad for tok, s in tokens]):
+        #    tokens = self.walker.get_tokens(self)
+        tokens = self.walker.get_tokens(self)
         attrib = [(tok, len(s)) for tok, s in tokens]
         return etext, attrib
+
+    def insert_text(self, text):
+        self.walker.all_tokens = None
+        super().insert_text(text)
 
     def keypress(self, size, key):
         orig_pos = self.edit_pos
@@ -255,6 +262,8 @@ class LineEditor(urwid.Edit):
         self.allow_tab = orig_allow_tab
         if key == "left" or key == "right":
             self.main_display.reset_status()
+        elif key == "backspace" or key == "delete":
+            self.walker.all_tokens = None
         elif self.smart_home and key == "home":
             m = RE_NOT_SPACE.search(self.edit_text or "")
             i = 0 if m is None else m.start()
@@ -391,6 +400,7 @@ class LineWalker(urwid.ListWalker):
         self.clipboard_pos = None
         self.lexer = lexer
         self.w_pos = {}
+        self.all_tokens = None
         self.main_display = main_display
         self.line_kwargs = dict(caption="", allow_tab=True, lexer=lexer, 
                                 wrap='clip', main_display=main_display, 
@@ -452,12 +462,17 @@ class LineWalker(urwid.ListWalker):
 
     def _ensure_read_in(self, lineno):
         next_line = ""
+        n = 0
         while lineno >= len(self.lines) and next_line is not None \
                                         and self.file is not None:
             next_line = self.read_next_line()
+            n += 1
+        if n >= 2:
+            self.all_tokens = None
     
     def split_focus(self):
         """Divide the focus edit widget at the cursor location."""
+        self.all_tokens = None
         focus = self.lines[self.focus]
         pos = focus.edit_pos
         edit = LineEditor(edit_text=focus.edit_text[pos:], **self.line_kwargs)
@@ -469,6 +484,7 @@ class LineWalker(urwid.ListWalker):
 
     def combine_focus_with_prev(self):
         """Combine the focus edit widget with the one above."""
+        self.all_tokens = None
         above, ignore = self.get_prev(self.focus)
         if above is None:
             return  # already at the top
@@ -481,6 +497,7 @@ class LineWalker(urwid.ListWalker):
 
     def combine_focus_with_next(self):
         """Combine the focus edit widget with the one below."""
+        self.all_tokens = None
         below, ignore = self.get_next(self.focus)
         if below is None:
             return  # already at bottom
@@ -539,7 +556,7 @@ class LineWalker(urwid.ListWalker):
         w.set_edit_text(text[:xpos] + s)
         w.set_edit_pos(xpos)
 
-    def get_tokens(self, w, offset=100):
+    def _get_tokens(self, w, offset=5):
         pos = self.get_pos(w)
         lbound = max(0, pos - offset)
         maxnnewline = min(pos, offset)
@@ -562,6 +579,38 @@ class LineWalker(urwid.ListWalker):
                 wtokens.append((token, text))
         return wtokens
 
+    def get_tokens(self, w):
+        alltokens = self.all_tokens
+        if alltokens is None:
+            self.all_tokens = alltokens = self.get_all_tokens()
+        pos = self.get_pos(w)
+        if pos >= len(alltokens):
+            return list(self.lexer.get_tokens(w.edit_text))
+        wtoks = alltokens[pos]
+        #if "".join([t[1] for t in wtoks]) != w.edit_text:
+        #    self.all_tokens = None
+        #    wtoks = self.get_tokens(w)
+        return wtoks
+
+    def get_all_tokens(self):
+#        t1 = time.time()
+        etext = lambda w: w.edit_text
+        viewtext = "\n".join(map(etext, self.lines))
+        ltokens = []
+        alltokens = []
+        for token, s in self.lexer.get_tokens(viewtext):
+            if len(s) == 0:
+                continue
+            if '\n' not in s:
+                ltokens.append((token, s))
+                continue
+            spl = s.split('\n')
+            ltokens.append((token, spl[0]))
+            for text in spl[1:]:
+                alltokens.append(ltokens)
+                ltokens = [(token, text)]
+#        print("time: ", time.time() - t1, file=sys.stderr)
+        return alltokens
     #
     # Clipboard methods
     #
@@ -574,6 +623,7 @@ class LineWalker(urwid.ListWalker):
            (focus != self.clipboard_pos):
             self.clipboard = []
         w = self.lines.pop(focus)
+        self.all_tokens = None
         del self.w_pos[w]
         self.clipboard.append(w)
         self.clipboard_pos = focus
@@ -584,6 +634,7 @@ class LineWalker(urwid.ListWalker):
         cb = self.clipboard
         if cb is None:
             return
+        self.all_tokens = None
         for line in cb[::-1]:
             newline = LineEditor(edit_text=line.get_edit_text(), **self.line_kwargs)
             newline.original_text = None
@@ -599,6 +650,7 @@ class LineWalker(urwid.ListWalker):
         """Inserts strings at the current position."""
         pos = self.focus
         rawlines.reverse()
+        self.all_tokens = None
         for rawline in rawlines:
             newline = LineEditor(edit_text=rawline, **self.line_kwargs)
             self.lines.insert(pos, newline)
