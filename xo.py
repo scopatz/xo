@@ -45,6 +45,8 @@ RE_NOT_SPACE = re.compile(r'\S')
 RE_TWO_DIGITS = re.compile("(\d+)(\D+)?(\d+)?")
 RE_SPACES = re.compile(r'( +)')
 
+RC_PATH = os.path.expanduser('~/.config/xo/rc.json')
+
 DEFAULT_RC = {
     'queries': [],
     'replacements': [],
@@ -408,10 +410,10 @@ class LineWalker(urwid.ListWalker):
         if pos_guess < llen and w is lines[pos_guess]:
             return pos_guess
         for uppos, dnpos in zip_longest(range(pos_guess+1, llen), range(pos_guess-1, -1, -1)):
-            if uppos is not None and w is lines[uppos]:
+            if uppos is not None and llen > uppos and w is lines[uppos]:
                 w_pos[w] = uppos
                 return uppos
-            if dnpos is not None and w is lines[dnpos]:
+            if dnpos is not None and llen > dnpos and w is lines[dnpos]:
                 w_pos[w] = dnpos
                 return dnpos
 
@@ -499,9 +501,7 @@ class LineWalker(urwid.ListWalker):
         del self.w_pos[self.lines[self.focus+1]]
         del self.lines[self.focus+1]
 
-    #
     # Some nice functions
-    #
     def get_coords(self):
         """Returns the line & col position. These are 1-indexed."""
         focus = self.focus
@@ -549,9 +549,7 @@ class LineWalker(urwid.ListWalker):
         w.set_edit_text(text[:xpos] + s)
         w.set_edit_pos(xpos)
 
-    # 
     # tokenization
-    #
     def _compute_slice(self, pos, window, alltokens):
         llen = len(self.lines)
         q = pos // window
@@ -601,9 +599,8 @@ class LineWalker(urwid.ListWalker):
                 alltokens.append(ltokens)
                 ltokens = [(token, text)]
         return alltokens
-    #
+
     # Clipboard methods
-    #
     def cut_to_clipboard(self):
         """Cuts the current line to the clipboard."""
         focus = self.focus
@@ -680,7 +677,7 @@ class MainDisplay(object):
 
     def load_rc(self):
         cacherc = json_rc_load('~/.cache/xo/rc.json')
-        configrc = json_rc_load('~/.config/xo/rc.json')
+        configrc = json_rc_load(RC_PATH)
         rc = merge_rcs(DEFAULT_RC, cacherc)
         rc = merge_rcs(rc, configrc)
         rc["queries"] = [re.compile(q) for q in rc["queries"]]
@@ -976,9 +973,19 @@ def main():
     main_display = MainDisplay()
     parser = ArgumentParser(prog='xo', formatter_class=RawDescriptionHelpFormatter,
                             description=__doc__.format(**main_display.keybindings))
-    parser.add_argument('path', help=("path to file, may include colon separated "
-                                      "line and col numbers, eg 'path/to/xo.py:10:42'"))
+    parser.add_argument('path', nargs="?",
+                        help=("path to file, may include colon separated "
+                              "line and col numbers, eg 'path/to/xo.py:10:42'"))
+    parser.add_argument('--rc', default=False, action="store_true", 
+                        help="display run control file")
+    parser.add_argument('--rc-edit', default=False, action="store_true", 
+                        help="open run control file")
     ns = parser.parse_args()
+    if ns.rc:
+        with open(RC_PATH) as f:
+            print(f.read())
+        sys.exit()
+    ns.path = RC_PATH if ns.rc_edit else ns.path
     path, line, col = path_line_col(ns.path)
     if not os.path.exists(path):
         touch(path)
