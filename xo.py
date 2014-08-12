@@ -46,7 +46,6 @@ RE_TWO_DIGITS = re.compile("(\d+)(\D+)?(\d+)?")
 RE_SPACES = re.compile(r'( +)')
 
 RC_PATH = os.path.expanduser('~/.config/xo/rc.json')
-
 DEFAULT_RC = {
     'queries': [],
     'replacements': [],
@@ -183,6 +182,7 @@ def json_rc_load(fname):
         try:
             rc = json.load(f)
         except ValueError:
+            print("Warning: rc file not valid JSON." file=sys.stderr)
             rc = {}
     return rc
 
