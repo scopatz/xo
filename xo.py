@@ -182,7 +182,7 @@ def json_rc_load(fname):
         try:
             rc = json.load(f)
         except ValueError:
-            print("Warning: rc file not valid JSON." file=sys.stderr)
+            print("Warning: rc file not valid JSON.", file=sys.stderr)
             rc = {}
     return rc
 
