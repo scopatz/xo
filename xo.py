@@ -230,7 +230,7 @@ class LineEditor(urwid.Edit):
         self.original_text = edit_text
         super().__init__(edit_text=sanitize_text(edit_text, tabsize), **kwargs)
         if lexer is None:
-           lexer = guess_lexer(self.get_edit_text())
+            lexer = guess_lexer(self.get_edit_text())
         self.lexer = lexer
         self.tabsize = tabsize
         self.main_display = main_display
