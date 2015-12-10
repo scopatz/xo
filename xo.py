@@ -35,6 +35,7 @@ import urwid
 import pygments.util
 from pygments.lexers import guess_lexer, guess_lexer_for_filename, get_lexer_by_name
 from pygments.lexers.special import TextLexer
+from pygments.lexers.python import PythonLexer, Python3Lexer
 from pygments.token import Token
 from pygments.filter import Filter
 from pygments.styles import get_all_styles, get_style_by_name
@@ -384,6 +385,7 @@ class LineWalker(urwid.ListWalker):
                 lexer = TextLexer()
         except pygments.util.ClassNotFound:
             lexer = TextLexer()
+        lexer = Python3Lexer() if isinstance(lexer, PythonLexer) else lexer
         lexer.add_filter(NonEmptyFilter())
         lexer.add_filter('tokenmerge')
         f.seek(0)
