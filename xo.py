@@ -53,18 +53,18 @@ DEFAULT_RC = {
     'max_replacements': 128,
     'tabs': {
         # name: (size, must_retab)
-        'default': (4, False), 
-        'c': (2, False), 
-        'h': (2, False), 
-        'cc': (2, False), 
-        'c++': (2, False), 
-        'h++': (2, False), 
-        'cpp': (2, False), 
-        'hpp': (2, False), 
-        'cxx': (2, False), 
-        'hxx': (2, False), 
-        'tsv': (8, True), 
-        'Makefile': (4, True), 
+        'default': (4, False),
+        'c': (2, False),
+        'h': (2, False),
+        'cc': (2, False),
+        'c++': (2, False),
+        'h++': (2, False),
+        'cpp': (2, False),
+        'hpp': (2, False),
+        'cxx': (2, False),
+        'hxx': (2, False),
+        'tsv': (8, True),
+        'Makefile': (4, True),
         },
     'style': 'monokai',
     'short_to_rgb': {  # color look-up table for 8-bit to RGB hex
@@ -92,7 +92,7 @@ DEFAULT_RC = {
         '86': '5fffd7', '87': '5fffff', '88': '870000', '89': '87005f', '90': '870087',
         '91': '8700af', '92': '8700d7', '93': '8700ff', '94': '875f00', '95': '875f5f',
         '96': '875f87', '97': '875faf', '98': '875fd7', '99': '875fff', '100': '878700',
-        '101': '87875f', '102': '878787', '103': '8787af', '104': '8787d7', 
+        '101': '87875f', '102': '878787', '103': '8787af', '104': '8787d7',
         '105': '8787ff', '106': '87af00', '107': '87af5f', '108': '87af87',
         '109': '87afaf', '110': '87afd7', '111': '87afff', '112': '87d700',
         '113': '87d75f', '114': '87d787', '115': '87d7af', '116': '87d7d7',
@@ -225,7 +225,7 @@ def sanitize_text(t, tabsize):
 
 class LineEditor(urwid.Edit):
     """Line editor with highligthing, column numbering, and smart home."""
-    def __init__(self, edit_text="", lexer=None, main_display=None, smart_home=True, 
+    def __init__(self, edit_text="", lexer=None, main_display=None, smart_home=True,
                  tabsize=None, **kwargs):
         self.original_text = edit_text
         super().__init__(edit_text=sanitize_text(edit_text, tabsize), **kwargs)
@@ -371,7 +371,7 @@ class FileSelectorEditor(urwid.Edit):
 class LineWalker(urwid.ListWalker):
     """ListWalker-compatible class for lazily reading file contents."""
 
-    def __init__(self, name, main_display, tabsize, multiline_window=1500, 
+    def __init__(self, name, main_display, tabsize, multiline_window=1500,
                  number_of_windows=1):
         self.name = name
         self.file = f = open(name)
@@ -398,8 +398,8 @@ class LineWalker(urwid.ListWalker):
         self.multiline_window = multiline_window
         self.number_of_windows = number_of_windows
         self.main_display = main_display
-        self.line_kwargs = dict(caption="", allow_tab=True, lexer=lexer, 
-                                wrap='clip', main_display=main_display, 
+        self.line_kwargs = dict(caption="", allow_tab=True, lexer=lexer,
+                                wrap='clip', main_display=main_display,
                                 smart_home=True, tabsize=tabsize)
 
     def get_pos(self, w):
@@ -417,17 +417,17 @@ class LineWalker(urwid.ListWalker):
                 w_pos[w] = dnpos
                 return dnpos
 
-    def get_focus(self): 
+    def get_focus(self):
         return self._get_at_pos(self.focus)
-    
+
     def set_focus(self, focus):
         self.focus = focus
         self._modified()
         self.main_display.reset_status()
-    
+
     def get_next(self, start_from):
         return self._get_at_pos(start_from + 1)
-    
+
     def get_prev(self, start_from):
         return self._get_at_pos(start_from - 1)
 
@@ -443,7 +443,7 @@ class LineWalker(urwid.ListWalker):
         self.w_pos[edit] = len(self.lines)
         self.lines.append(edit)
         return next_line
-    
+
     def _get_at_pos(self, pos):
         """Return a widget for the line number passed."""
         if pos < 0:
@@ -464,7 +464,7 @@ class LineWalker(urwid.ListWalker):
             n += 1
         if n >= 2:
             self.all_tokens = None
-    
+
     def split_focus(self):
         """Divide the focus edit widget at the cursor location."""
         self.all_tokens = None
@@ -557,7 +557,7 @@ class LineWalker(urwid.ListWalker):
         alltokens[slc] = self.get_all_tokens(lines=self.lines[slc])
 
     def get_tokens(self, w, window=None):
-        """Computes the tokens for a widget, but first tries to look them up from 
+        """Computes the tokens for a widget, but first tries to look them up from
         a cache on the class.
         """
         alltokens = self.all_tokens
@@ -652,11 +652,11 @@ class MainDisplay(object):
     base_palette = [('body', 'default', 'default'),
                     ('foot', 'black', 'dark blue', 'bold'),
                     ('key', 'black', 'dark magenta', 'underline'),]
-        
+
     status_text = ('foot', ["xo    ", ('key', "^x"), " exit ",
                                       ('key', "^o"), " save ",
                                       ('key', "esc"), " help ", ""])
-    
+
     def __init__(self):
         self.load_rc()
         self.set_keybindings()
@@ -664,7 +664,7 @@ class MainDisplay(object):
     def init_file(self, name):
         self.save_name = name
         self.set_tabs()
-        self.walker = LineWalker(name, main_display=self, tabsize=self.tabsize, 
+        self.walker = LineWalker(name, main_display=self, tabsize=self.tabsize,
                                  multiline_window=self.rc['multiline_window'])
         self.listbox = urwid.ListBox(self.walker)
         self.status = urwid.AttrMap(urwid.Text(self.status_text), "foot")
@@ -672,7 +672,7 @@ class MainDisplay(object):
                                 footer=self.status)
         self.clipboard = None
         self.queries = deque(self.rc["queries"], maxlen=self.rc["max_queries"])
-        self.replacements = deque(self.rc["replacements"], 
+        self.replacements = deque(self.rc["replacements"],
                                   maxlen=self.rc["max_replacements"])
 
     def load_rc(self):
@@ -681,7 +681,7 @@ class MainDisplay(object):
         rc = merge_rcs(DEFAULT_RC, cacherc)
         rc = merge_rcs(rc, configrc)
         rc["queries"] = [re.compile(q) for q in rc["queries"]]
-        self.rc = rc 
+        self.rc = rc
 
     def dump_cache(self):
         cacherc = {"replacements": list(self.replacements),
@@ -696,7 +696,7 @@ class MainDisplay(object):
     def set_tabs(self):
         name = self.save_name
         for tab in sorted(self.rc["tabs"].items(), reverse=True):
-            # reverse ensures longest match 
+            # reverse ensures longest match
             if name.endswith(tab[0]):
                 self.tabsize, self.must_retab = tab[1]
                 break
@@ -726,8 +726,8 @@ class MainDisplay(object):
                 st = ''
             st = st.split()
             st.sort()   # '#' comes before '[A-Za-z0-9]'
-            if len(st) == 0: 
-                c = default 
+            if len(st) == 0:
+                c = default
             elif st[0].startswith('bg:'):
                 c = default
             elif len(st[0]) == 7:
@@ -735,7 +735,7 @@ class MainDisplay(object):
             elif len(st[0]) == 4:
                 c = 'h' + rgb_to_short(st[0][1]*2 + st[0][2]*2 + st[0][3]*2, mapping)[0]
             else:
-                c = default 
+                c = default
             a = urwid.AttrSpec(c, default, colors=256)
             row = (tok, default, default, default, a.foreground, default)
             palette.append(row)
@@ -767,7 +767,7 @@ class MainDisplay(object):
         return stat
 
     def replace_match(self):
-        """Finds, jumps, and substitues to the next match for the current query & 
+        """Finds, jumps, and substitues to the next match for the current query &
         replacement.
         """
         if len(self.queries) == 0:
@@ -790,7 +790,7 @@ class MainDisplay(object):
         flc = "{0}:{1[0]}:{1[1]}".format(self.save_name, self.walker.get_coords())
         ft[1][-1] = "{0: >{1}}".format(flc, max(ncol - 33, 0))
         self.status.original_widget.set_text(ft)
-    
+
     def unhandled_keypress(self, k):
         """Where the main app handles keypresses."""
         status = "xo      "
@@ -803,7 +803,7 @@ class MainDisplay(object):
             self.dump_cache()
             raise urwid.ExitMainLoop()
         elif k == "delete" and fp == "body":
-            # delete at end of line            
+            # delete at end of line
             self.walker.combine_focus_with_next()
         elif k == "backspace" and fp == "body":
             # backspace at beginning of line
@@ -863,7 +863,7 @@ class MainDisplay(object):
             curr_footer = self.view.contents["footer"][0]
             if curr_footer is self.status:
                 self.view.contents["footer"] = (
-                    urwid.AttrMap(QueryEditor(caption="re: ", edit_text="", 
+                    urwid.AttrMap(QueryEditor(caption="re: ", edit_text="",
                                   deq=self.queries), "foot"), None)
                 self.view.focus_position = "footer"
         elif k == keybindings["find_next"]:
@@ -878,7 +878,7 @@ class MainDisplay(object):
                 curr_footer = self.status
             if curr_footer is self.status:
                 self.view.contents["footer"] = (
-                    urwid.AttrMap(ReplacementEditor(caption="sub: ", edit_text="", 
+                    urwid.AttrMap(ReplacementEditor(caption="sub: ", edit_text="",
                                   deq=self.replacements), "foot"), None)
                 self.view.focus_position = "footer"
         elif k == keybindings["replace_next"]:
@@ -917,7 +917,7 @@ class MainDisplay(object):
             return
         self.reset_status(status=status)
         return True
-            
+
     def save_file(self):
         """Write the file out to disk."""
         newlines = []
@@ -935,13 +935,14 @@ class MainDisplay(object):
             else:
                 newline = retab(edit_text, tabsize) if must_retab else edit_text
             newlines.append(ensure_endswith_newline(newline))
-        
+
         while walker.file is not None:  # grab remaining lines
             newlines.append(ensure_endswith_newline(walker.read_next_line()))
+        newlines = [line.rstrip() + '\n' for line in newlines]
 
         last_line = newlines[-1]
         newlines[-1] = last_line[:-1] if last_line.endswith('\n') else last_line
-        with open(self.save_name, "w") as f:  
+        with open(self.save_name, "w") as f:
             for newline in newlines:
                 f.write(newline)
 
@@ -976,9 +977,9 @@ def main():
     parser.add_argument('path', nargs="?",
                         help=("path to file, may include colon separated "
                               "line and col numbers, eg 'path/to/xo.py:10:42'"))
-    parser.add_argument('--rc', default=False, action="store_true", 
+    parser.add_argument('--rc', default=False, action="store_true",
                         help="display run control file")
-    parser.add_argument('--rc-edit', default=False, action="store_true", 
+    parser.add_argument('--rc-edit', default=False, action="store_true",
                         help="open run control file")
     ns = parser.parse_args()
     if ns.rc:
@@ -994,5 +995,5 @@ def main():
     main_display.init_file(path)
     main_display.main(line, col)
 
-if __name__=="__main__": 
+if __name__=="__main__":
     main()
