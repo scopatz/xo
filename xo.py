@@ -976,7 +976,7 @@ def main():
     main_display = MainDisplay()
     parser = ArgumentParser(prog='xo', formatter_class=RawDescriptionHelpFormatter,
                             description=__doc__.format(**main_display.keybindings))
-    parser.add_argument('path', nargs="?",
+    parser.add_argument('path',
                         help=("path to file, may include colon separated "
                               "line and col numbers, eg 'path/to/xo.py:10:42'"))
     parser.add_argument('--rc', default=False, action="store_true",
