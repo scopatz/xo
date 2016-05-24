@@ -41,6 +41,7 @@ if __name__ == '__main__':
     setup(
         name='exofrills',
         py_modules=['xo'],
+        packages=['xontrib'],
         entry_points={'console_scripts': ['xo = xo:main',],},
         long_description=open('readme.rst').read(),
         **setup_kwargs
