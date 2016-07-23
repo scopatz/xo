@@ -35,6 +35,7 @@ if have_setuptools:
     setup_kwargs['install_requires'] = [
         'Pygments >= 1.6',
         'urwid >= 1.1.1',
+        'lazyasd',
         ]
 
 if __name__ == '__main__':

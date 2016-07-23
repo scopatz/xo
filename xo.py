@@ -31,6 +31,11 @@ from itertools import zip_longest
 from collections import deque, Mapping, Sequence
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 
+# must come before pygments imports
+from lazyasd import load_module_in_background
+load_module_in_background('pkg_resources',
+                          replacements={'pygments.plugin': 'pkg_resources'})
+
 import urwid
 import pygments.util
 from pygments.lexers import guess_lexer, guess_lexer_for_filename, get_lexer_by_name
