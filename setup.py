@@ -11,7 +11,7 @@ except ImportError:
 if sys.version_info[0] < 3:
     sys.exit("ERROR: xo requires Python 3.")
 
-VERSION = '0.1.11'
+VERSION = '0.1.12'
 
 setup_kwargs = {
     "version": VERSION,
