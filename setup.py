@@ -11,10 +11,10 @@ except ImportError:
 if sys.version_info[0] < 3:
     sys.exit("ERROR: xo requires Python 3.")
 
-VERSION = "0.1"
+VERSION = '0.1.11'
 
 setup_kwargs = {
-    "version": VERSION + '.11',
+    "version": VERSION,
     "description": 'exofrills text editor',
     "author": 'Anthony Scopatz',
     "author_email": 'scopatz@gmail.com',
