@@ -60,7 +60,7 @@ class OnlyAction(Action):
 def main(args=None):
     parser = ArgumentParser('release')
     parser.add_argument('--upstream',
-                        default='git@github.com:xonsh/lazyasd.git',
+                        default='git@github.com:scopatz/xo.git',
                         help='upstream repo')
     parser.add_argument('-b', '--branch', default='master',
                          help='branch to commit / push to.')
