@@ -977,18 +977,18 @@ def path_line_col(x):
     plc += [1] * (3 - len(plc))
     return plc[0], int(plc[1] or 1), int(plc[2] or 1)
 
-def main():
+def main(args=None):
     main_display = MainDisplay()
     parser = ArgumentParser(prog='xo', formatter_class=RawDescriptionHelpFormatter,
                             description=__doc__.format(**main_display.keybindings))
-    parser.add_argument('path', nargs="?",
+    parser.add_argument('path',
                         help=("path to file, may include colon separated "
                               "line and col numbers, eg 'path/to/xo.py:10:42'"))
     parser.add_argument('--rc', default=False, action="store_true",
                         help="display run control file")
     parser.add_argument('--rc-edit', default=False, action="store_true",
                         help="open run control file")
-    ns = parser.parse_args()
+    ns = parser.parse_args(args=args)
     if ns.rc:
         with open(RC_PATH) as f:
             print(f.read())
