@@ -11,10 +11,10 @@ except ImportError:
 if sys.version_info[0] < 3:
     sys.exit("ERROR: xo requires Python 3.")
 
-VERSION = "0.1"
+VERSION = '0.1.13'
 
 setup_kwargs = {
-    "version": VERSION + '.12',
+    "version": VERSION,
     "description": 'exofrills text editor',
     "author": 'Anthony Scopatz',
     "author_email": 'scopatz@gmail.com',
@@ -35,6 +35,7 @@ if have_setuptools:
     setup_kwargs['install_requires'] = [
         'Pygments >= 1.6',
         'urwid >= 1.1.1',
+        'lazyasd',
         ]
 
 if __name__ == '__main__':
