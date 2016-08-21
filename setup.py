@@ -1,12 +1,16 @@
 #! /usr/bin/env python
 
 import sys
-try:
-    from setuptools import setup
-    have_setuptools = True
-except ImportError:
-    from distutils.core import setup
-    have_setuptools = False
+#try:
+#    from setuptools import setup
+#    have_setuptools = True
+#except ImportError:
+#    from distutils.core import setup
+#    have_setuptools = False
+
+# setuptools no longer works.
+from distutils.core import setup
+have_setuptools = False
 
 if sys.version_info[0] < 3:
     sys.exit("ERROR: xo requires Python 3.")
@@ -27,7 +31,6 @@ setup_kwargs = {
         "Topic :: Utilities",
         "Topic :: Text Editors",
         ],
-    "zip_safe": False,
     "data_files": [("", ['license', 'readme.rst']),],
     }
 
@@ -37,13 +40,14 @@ if have_setuptools:
         'urwid >= 1.1.1',
         'lazyasd',
         ]
+    setup_kwargs["zip_safe"] = False
 
 if __name__ == '__main__':
     setup(
         name='exofrills',
         py_modules=['xo'],
         packages=['xontrib'],
-        entry_points={'console_scripts': ['xo = xo:main',],},
+        scripts=['xo'],
         long_description=open('readme.rst').read(),
         **setup_kwargs
         )
