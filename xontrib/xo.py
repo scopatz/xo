@@ -1,11 +1,12 @@
 """Exofrills xontrib."""
-from xonsh.proc import foreground
+from xonsh.proc import unthreadable, uncapturable
 from xo import main as _main
 
-@foreground
+@unthreadable
+@uncapturable
 def _xo(args, stdin=None):
     _main(args=args)
 
 
 aliases['xo'] = _xo
-del foreground
+del unthreadable, uncapturable
