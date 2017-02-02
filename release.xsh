@@ -78,7 +78,7 @@ def main(args=None):
 
     # enable debugging
     $RAISE_SUBPROC_ERROR = True
-    trace on
+    #trace on
 
     # run commands
     if ns.do_version_bump:
@@ -89,7 +89,7 @@ def main(args=None):
         pipify()
 
     # disable debugging
-    trace off
+    #trace off
 
 if __name__ == '__main__':
     main()
