@@ -71,6 +71,7 @@ DEFAULT_RC = {
         'hpp': (2, False),
         'cxx': (2, False),
         'hxx': (2, False),
+        'xsh': (4, False),
         'tsv': (8, True),
         'Makefile': (4, True),
         },
