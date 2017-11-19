@@ -15,7 +15,7 @@ have_setuptools = False
 if sys.version_info[0] < 3:
     sys.exit("ERROR: xo requires Python 3.")
 
-VERSION = '0.1.14'
+VERSION = '0.2.0'
 
 setup_kwargs = {
     "version": VERSION,
