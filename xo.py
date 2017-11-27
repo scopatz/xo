@@ -38,7 +38,7 @@ load_module_in_background('pkg_resources',
 
 import urwid
 import pygments.util
-from pygments.lexers import guess_lexer, guess_lexer_for_filename, get_lexer_by_name
+from pygments.lexers import guess_lexer, guess_lexer_for_filename, get_lexer_by_name, get_lexer_for_filename
 from pygments.lexers.special import TextLexer
 from pygments.lexers.python import PythonLexer, Python3Lexer
 from pygments.token import Token
@@ -384,15 +384,21 @@ class LineWalker(urwid.ListWalker):
                  number_of_windows=1):
         self.name = name
         self.file = f = open(name)
+        line = f.readline()
         try:
-            lexer = guess_lexer_for_filename(name, f.readline())
-        except TypeError:
+            lexer = get_lexer_for_filename(name, line)
+        except pygments.util.ClassNotFound:
+            lexer = None
+        if lexer is None:
             try:
-                lexer = get_lexer_by_name(os.path.splitext(name)[1][1:])
+                lexer = guess_lexer_for_filename(name, f.readline())
+            except TypeError:
+                try:
+                    lexer = get_lexer_by_name(os.path.splitext(name)[1][1:])
+                except pygments.util.ClassNotFound:
+                    lexer = TextLexer()
             except pygments.util.ClassNotFound:
                 lexer = TextLexer()
-        except pygments.util.ClassNotFound:
-            lexer = TextLexer()
         lexer = Python3Lexer() if isinstance(lexer, PythonLexer) else lexer
         lexer.add_filter(NonEmptyFilter())
         lexer.add_filter('tokenmerge')
