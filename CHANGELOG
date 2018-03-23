@@ -4,6 +4,21 @@ xo Change Log
 
 .. current developments
 
+v0.2.1
+====================
+
+**Changed:**
+
+* Removed ``lazyasd`` as a dependency.
+
+
+**Fixed:**
+
+* Fixed issue with Pygments v2.2.0 that was caused by ``pkg_reourses`` being imported in the background.
+
+
+
+
 v0.2.0
 ====================
 
