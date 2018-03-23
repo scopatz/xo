@@ -1,5 +1,5 @@
 $PROJECT = 'xo'
-$ACTIVITIES = ['version_bump', 'changelog', 'tag', 'pypi',
+$ACTIVITIES = ['version_bump', 'changelog', 'tag', 'push_tag', 'pypi',
                'conda_forge', 'ghrelease']
 
 $VERSION_BUMP_PATTERNS = [
