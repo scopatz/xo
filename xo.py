@@ -31,11 +31,6 @@ from itertools import zip_longest
 from collections import deque, Mapping, Sequence
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 
-# must come before pygments imports
-from lazyasd import load_module_in_background
-load_module_in_background('pkg_resources',
-                          replacements={'pygments.plugin': 'pkg_resources'})
-
 import urwid
 import pygments.util
 from pygments.lexers import guess_lexer, guess_lexer_for_filename, get_lexer_by_name, get_lexer_for_filename
@@ -384,39 +379,48 @@ class LineWalker(urwid.ListWalker):
                  number_of_windows=1):
         self.name = name
         self.file = f = open(name)
-        line = f.readline()
-        try:
-            lexer = get_lexer_for_filename(name, line)
-        except pygments.util.ClassNotFound:
-            lexer = None
-        if lexer is None:
-            try:
-                lexer = guess_lexer_for_filename(name, f.readline())
-            except TypeError:
-                try:
-                    lexer = get_lexer_by_name(os.path.splitext(name)[1][1:])
-                except pygments.util.ClassNotFound:
-                    lexer = TextLexer()
-            except pygments.util.ClassNotFound:
-                lexer = TextLexer()
-        lexer = Python3Lexer() if isinstance(lexer, PythonLexer) else lexer
-        lexer.add_filter(NonEmptyFilter())
-        lexer.add_filter('tokenmerge')
-        f.seek(0)
         self.lines = []
         self.focus = 0
         self.clipboard = None
         self.clipboard_pos = None
-        self.lexer = lexer
+        self.lexer = None
         self.w_pos = {}
         self.all_tokens = None
         self._etext = lambda w: w.edit_text
         self.multiline_window = multiline_window
         self.number_of_windows = number_of_windows
         self.main_display = main_display
-        self.line_kwargs = dict(caption="", allow_tab=True, lexer=lexer,
+        self.line_kwargs = dict(caption="", allow_tab=True, lexer=None,
                                 wrap='clip', main_display=main_display,
                                 smart_home=True, tabsize=tabsize)
+
+    def _ensure_lexer(self):
+        if self.lexer is not None:
+            return
+        pos = self.file.tell()
+        self.file.seek(0)
+        line = self.file.readline()
+        self.file.seek(pos)
+        try:
+            lexer = get_lexer_for_filename(self.name, line)
+        except pygments.util.ClassNotFound:
+            lexer = None
+        if lexer is None:
+            try:
+                lexer = guess_lexer_for_filename(self.name, self.file.readline())
+            except TypeError:
+                try:
+                    lexer = get_lexer_by_name(os.path.splitext(self.name)[1][1:])
+                except pygments.util.ClassNotFound:
+                    lexer = TextLexer()
+            except pygments.util.ClassNotFound:
+                lexer = TextLexer()
+            finally:
+                self.file.seek(pos)
+        lexer = Python3Lexer() if isinstance(lexer, PythonLexer) else lexer
+        lexer.add_filter(NonEmptyFilter())
+        lexer.add_filter('tokenmerge')
+        self.lexer = self.line_kwargs['lexer'] = lexer
 
     def get_pos(self, w):
         w_pos = self.w_pos
@@ -454,6 +458,7 @@ class LineWalker(urwid.ListWalker):
             self.file = None  # no newline on last line of file
         else:
             next_line = next_line[:-1]  # trim newline characters
+        self._ensure_lexer()
         edit = LineEditor(edit_text=next_line, **self.line_kwargs)
         edit.set_edit_pos(0)
         self.w_pos[edit] = len(self.lines)
@@ -486,6 +491,7 @@ class LineWalker(urwid.ListWalker):
         self.all_tokens = None
         focus = self.lines[self.focus]
         pos = focus.edit_pos
+        #self._ensure_lexer()
         edit = LineEditor(edit_text=focus.edit_text[pos:], **self.line_kwargs)
         edit.original_text = None
         focus.set_edit_text(focus.edit_text[:pos])
