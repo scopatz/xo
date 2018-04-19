@@ -397,17 +397,21 @@ class LineWalker(urwid.ListWalker):
     def _ensure_lexer(self):
         if self.lexer is not None:
             return
-        pos = self.file.tell()
-        self.file.seek(0)
-        line = self.file.readline()
-        self.file.seek(pos)
+        if self.file is None:
+            line = ''
+        else:
+            pos = self.file.tell()
+            self.file.seek(0)
+            line = self.file.readline()
+            self.file.seek(pos)
         try:
             lexer = get_lexer_for_filename(self.name, line)
         except pygments.util.ClassNotFound:
             lexer = None
         if lexer is None:
+            line = '' if self.file is None else self.file.readline()
             try:
-                lexer = guess_lexer_for_filename(self.name, self.file.readline())
+                lexer = guess_lexer_for_filename(self.name, line)
             except TypeError:
                 try:
                     lexer = get_lexer_by_name(os.path.splitext(self.name)[1][1:])
@@ -416,7 +420,8 @@ class LineWalker(urwid.ListWalker):
             except pygments.util.ClassNotFound:
                 lexer = TextLexer()
             finally:
-                self.file.seek(pos)
+                if self.file is not None:
+                    self.file.seek(pos)
         lexer = Python3Lexer() if isinstance(lexer, PythonLexer) else lexer
         lexer.add_filter(NonEmptyFilter())
         lexer.add_filter('tokenmerge')
