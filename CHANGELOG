@@ -4,6 +4,16 @@ xo Change Log
 
 .. current developments
 
+v0.2.2
+====================
+
+**Fixed:**
+
+* Fixed issue preventing opening of empty files.
+
+
+
+
 v0.2.1
 ====================
 
