@@ -1,6 +1,6 @@
 $PROJECT = 'xo'
 $ACTIVITIES = ['version_bump', 'changelog', 'tag', 'push_tag', 'pypi',
-               'conda_forge', 'ghrelease']
+               'ghrelease', 'conda_forge']
 
 $VERSION_BUMP_PATTERNS = [
     ('setup.py', "VERSION\s*=.*", "VERSION = '$VERSION'"),

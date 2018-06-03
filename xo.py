@@ -33,12 +33,12 @@ from argparse import ArgumentParser, RawDescriptionHelpFormatter
 
 import urwid
 import pygments.util
-from pygments.lexers import guess_lexer, guess_lexer_for_filename, get_lexer_by_name, get_lexer_for_filename
+import pygments_cache
 from pygments.lexers.special import TextLexer
 from pygments.lexers.python import PythonLexer, Python3Lexer
 from pygments.token import Token
 from pygments.filter import Filter
-from pygments.styles import get_all_styles, get_style_by_name
+from pygments.styles import get_all_styles
 
 __version__ = '0.2.2'
 
@@ -335,7 +335,7 @@ class StyleSelectorEditor(urwid.Edit):
     """Editor to select pygments style."""
     def run(self, main_display):
         try:
-            s = get_style_by_name(self.edit_text.strip())
+            s = pygments_cache.get_style_by_name(self.edit_text.strip())
         except pygments.util.ClassNotFound:
             return "bad sty "
         main_display.register_palette(s)
@@ -397,31 +397,10 @@ class LineWalker(urwid.ListWalker):
     def _ensure_lexer(self):
         if self.lexer is not None:
             return
-        if self.file is None:
-            line = ''
-        else:
-            pos = self.file.tell()
-            self.file.seek(0)
-            line = self.file.readline()
-            self.file.seek(pos)
         try:
-            lexer = get_lexer_for_filename(self.name, line)
+            lexer = pygments_cache.get_lexer_for_filename(self.name)
         except pygments.util.ClassNotFound:
-            lexer = None
-        if lexer is None:
-            line = '' if self.file is None else self.file.readline()
-            try:
-                lexer = guess_lexer_for_filename(self.name, line)
-            except TypeError:
-                try:
-                    lexer = get_lexer_by_name(os.path.splitext(self.name)[1][1:])
-                except pygments.util.ClassNotFound:
-                    lexer = TextLexer()
-            except pygments.util.ClassNotFound:
-                lexer = TextLexer()
-            finally:
-                if self.file is not None:
-                    self.file.seek(pos)
+            lexer = TextLexer()
         lexer = Python3Lexer() if isinstance(lexer, PythonLexer) else lexer
         lexer.add_filter(NonEmptyFilter())
         lexer.add_filter('tokenmerge')
@@ -774,7 +753,7 @@ class MainDisplay(object):
             unhandled_input=self.unhandled_keypress)
         loop.screen.set_terminal_properties(256)
         self.loop = loop
-        self.register_palette(get_style_by_name(self.rc["style"]))
+        self.register_palette(pygments_cache.get_style_by_name(self.rc["style"]))
         self.walker.goto(line, col)
         self.walker.all_tokens = None
         while True:
@@ -918,7 +897,7 @@ class MainDisplay(object):
         elif k == keybindings["style"]:
             curr_footer = self.view.contents["footer"][0]
             if curr_footer is self.status:
-                cap = "available styles: {0}\nchoose one: "
+                cap = "known available styles: {0}\nchoose one: "
                 cap = cap.format(" ".join(sorted(get_all_styles())))
                 self.view.contents["footer"] = (urwid.AttrMap(StyleSelectorEditor(
                     caption=cap, edit_text=""), "foot"), None)
