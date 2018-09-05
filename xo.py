@@ -28,7 +28,8 @@ import json
 import time
 from glob import glob
 from itertools import zip_longest
-from collections import deque, Mapping, Sequence
+from collections import deque
+from collections.abc import Mapping, Sequence
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 
 import urwid
