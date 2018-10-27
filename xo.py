@@ -41,7 +41,7 @@ from pygments.token import Token
 from pygments.filter import Filter
 from pygments.styles import get_all_styles
 
-__version__ = '0.3.1'
+__version__ = '0.3.2'
 
 RE_WORD = re.compile(r'\w+')
 RE_NOT_WORD = re.compile(r'\W+')
@@ -988,7 +988,12 @@ def main(args=None):
                         help="display run control file")
     parser.add_argument('--rc-edit', default=False, action="store_true",
                         help="open run control file")
+    parser.add_argument('-v', '--version', default=False, action="store_true",
+                        help="show version and exit")
     ns = parser.parse_args(args=args)
+    if ns.version:
+        print("{} v{}".format('xo', __version__))
+        sys.exit()
     if ns.rc:
         with open(RC_PATH) as f:
             print(f.read())
