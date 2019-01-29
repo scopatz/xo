@@ -41,7 +41,7 @@ from pygments.token import Token
 from pygments.filter import Filter
 from pygments.styles import get_all_styles
 
-__version__ = '0.3.2'
+__version__ = '0.3.1'
 
 RE_WORD = re.compile(r'\w+')
 RE_NOT_WORD = re.compile(r'\W+')
@@ -981,7 +981,7 @@ def main(args=None):
     main_display = MainDisplay()
     parser = ArgumentParser(prog='xo', formatter_class=RawDescriptionHelpFormatter,
                             description=__doc__.format(**main_display.keybindings))
-    parser.add_argument('path',
+    parser.add_argument('path', nargs='?',
                         help=("path to file, may include colon separated "
                               "line and col numbers, eg 'path/to/xo.py:10:42'"))
     parser.add_argument('--rc', default=False, action="store_true",
@@ -993,11 +993,11 @@ def main(args=None):
     ns = parser.parse_args(args=args)
     if ns.version:
         print("{} v{}".format('xo', __version__))
-        sys.exit()
+        return
     if ns.rc:
         with open(RC_PATH) as f:
             print(f.read())
-        sys.exit()
+        return
     ns.path = RC_PATH if ns.rc_edit else ns.path
     path, line, col = path_line_col(ns.path)
     if not os.path.exists(path):

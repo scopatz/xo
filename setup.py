@@ -8,7 +8,7 @@ from distutils.core import setup
 if sys.version_info[0] < 3:
     sys.exit("ERROR: xo requires Python 3.")
 
-VERSION = '0.3.2'
+VERSION = '0.3.1'
 
 setup_kwargs = {
     "version": VERSION,
