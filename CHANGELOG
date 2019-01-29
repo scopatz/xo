@@ -4,6 +4,15 @@ xo Change Log
 
 .. current developments
 
+v0.3.2
+====================
+
+**Added:**
+
+* Now accepts ``-v | --version`` argument to print the version
+
+
+
 v0.3.1
 ====================
 
