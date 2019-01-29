@@ -41,7 +41,7 @@ from pygments.token import Token
 from pygments.filter import Filter
 from pygments.styles import get_all_styles
 
-__version__ = '0.3.1'
+__version__ = '0.3.2'
 
 RE_WORD = re.compile(r'\w+')
 RE_NOT_WORD = re.compile(r'\W+')
