@@ -30,7 +30,7 @@ from glob import glob
 from itertools import zip_longest
 from collections import deque
 from collections.abc import Mapping, Sequence
-from argparse import ArgumentParser, RawDescriptionHelpFormatter
+from argparse import ArgumentParser, RawDescriptionHelpFormatter, _StoreTrueAction
 
 import urwid
 import pygments.util
@@ -981,15 +981,21 @@ def main(args=None):
     main_display = MainDisplay()
     parser = ArgumentParser(prog='xo', formatter_class=RawDescriptionHelpFormatter,
                             description=__doc__.format(**main_display.keybindings))
-    parser.add_argument('path', nargs='?',
-                        help=("path to file, may include colon separated "
-                              "line and col numbers, eg 'path/to/xo.py:10:42'"))
-    parser.add_argument('--rc', default=False, action="store_true",
+    path = parser.add_argument('path', help=("path to file, may include colon separated "
+                                             "line and col numbers, eg 'path/to/xo.py:10:42'"))
+
+    class EitherOrAction(_StoreTrueAction):
+        def __call__(self, parser, namespace, values, option_string=None):
+            setattr(namespace, self.dest, self.const)
+            path.required = False
+
+    parser.add_argument('--rc', action=EitherOrAction,
                         help="display run control file")
-    parser.add_argument('--rc-edit', default=False, action="store_true",
+    parser.add_argument('--rc-edit', action=EitherOrAction,
                         help="open run control file")
-    parser.add_argument('-v', '--version', default=False, action="store_true",
+    parser.add_argument('-v', '--version', action=EitherOrAction,
                         help="show version and exit")
+
     ns = parser.parse_args(args=args)
     if ns.version:
         print("{} v{}".format('xo', __version__))
