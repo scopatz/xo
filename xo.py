@@ -856,7 +856,7 @@ class MainDisplay(object):
         elif k == "ctrl right" or k == "meta right":
             w, ypos = self.walker.get_focus()
             xpos = w.edit_pos
-            re_word = RE_WORD if k == "meta right" else RE_NOT_WORD
+            re_word = RE_WORD if k == "ctrl right" else RE_NOT_WORD
             m = re_word.search(w.edit_text or "", xpos)
             word_pos = xpos if m is None else m.end()
             w.set_edit_pos(word_pos)
