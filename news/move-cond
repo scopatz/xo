@@ -1,0 +1,14 @@
+**Added:**
+
+**Changed:**
+
+**Deprecated:**
+
+**Removed:**
+
+**Fixed:**
+
+* inconsistent handling of ctrl/meta + left and ctrl/meta + right
+  * ctrl+right used to be swapped with meta+right
+
+**Security:**
