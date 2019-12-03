@@ -257,9 +257,7 @@ class LineEditor(urwid.Edit):
         orig_allow_tab, self.allow_tab = self.allow_tab, False
         rtn = super().keypress(size, key)
         self.allow_tab = orig_allow_tab
-        if key == "left" or key == "right":
-            self.main_display.reset_status()
-        elif key == "backspace" or key == "delete":
+        if key == "backspace" or key == "delete":
             self.walker.all_tokens = None
         elif self.smart_home and key == "home":
             m = RE_NOT_SPACE.search(self.edit_text or "")
@@ -270,6 +268,8 @@ class LineEditor(urwid.Edit):
         elif orig_allow_tab and key == "tab":
             key = " "*(self.tabsize - (self.edit_pos%self.tabsize))
             self.insert_text(key)
+        # displays col, row for "end" and all keys when starting a new line
+        self.main_display.reset_status()
         return rtn
 
 class GotoEditor(urwid.Edit):
@@ -431,9 +431,11 @@ class LineWalker(urwid.ListWalker):
         self.main_display.reset_status()
 
     def get_next(self, start_from):
+        self.main_display.reset_status()
         return self._get_at_pos(start_from + 1)
 
     def get_prev(self, start_from):
+        self.main_display.reset_status()
         return self._get_at_pos(start_from - 1)
 
     def read_next_line(self):
