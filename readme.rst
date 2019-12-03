@@ -13,7 +13,7 @@ You might be looking for help, but this is all I can do::
     optional arguments:
       -h, --help  show this help message and exit
 
-Someone else made a `video tutorial <http://youtu.be/bPq8fncImtQ>`_ and posted 
+Someone else made a `video tutorial <http://youtu.be/bPq8fncImtQ>`_ and posted
 it on YouTube within an hour of the 0.1 release.
 
 get xo
@@ -44,6 +44,7 @@ key commands
 :meta + s: select pygments style
 :ctrl + f: insert file at current position
 :ctrl + y: go to line & column (yalla, let's bounce)
+:ctrl + n: name completion with Jedi (if installed)
 
 :ctrl + k: cuts the current line to the clipboard
 :ctrl + u: pastes the clipboard to the current line

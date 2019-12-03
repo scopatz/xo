@@ -10,6 +10,7 @@ esc: get help
 {style}: select pygments style
 {insert}: insert file at current position
 {jump}: go to line & column (yalla, let's bounce)
+{name_complete}: activate name completion, if Jedi is installed
 
 {cut}: cuts the current line to the clipboard
 {paste}: pastes the clipboard to the current line
@@ -40,6 +41,7 @@ from pygments.lexers.python import PythonLexer, Python3Lexer
 from pygments.token import Token
 from pygments.filter import Filter
 from pygments.styles import get_all_styles
+import jedi
 
 __version__ = '0.3.2'
 
@@ -151,6 +153,7 @@ DEFAULT_RC = {
         "find_next": "meta w",
         "replace": "ctrl r",
         "replace_next": "meta r",
+        "name_complete": "ctrl n",
         },
     'multiline_window': 750,  # this is good size to balance response vs long comments
     'number_of_windows': 1,   # maximum nuber of windows to pane.
@@ -264,7 +267,6 @@ class LineEditor(urwid.Edit):
             i = 0 if m is None else m.start()
             i = 0 if i == orig_pos else i
             self.set_edit_pos(i)
-            self.main_display.reset_status()
         elif orig_allow_tab and key == "tab":
             key = " "*(self.tabsize - (self.edit_pos%self.tabsize))
             self.insert_text(key)
@@ -324,6 +326,15 @@ class QueryEditor(DequeEditor):
 
     def text_at(self, i):
         return self.deq[i].pattern
+
+class NameCompleteEditor(DequeEditor):
+    """Name Complete Editor Testing stage at this point"""
+    def run(self, main_display):
+        r = self.get_edit_text()
+        main_display.insert_name_completion(r)
+
+    def text_at(self, i):
+        return self.deq[i]
 
 class ReplacementEditor(DequeEditor):
     """Sets a replacement string on the main body."""
@@ -558,6 +569,11 @@ class LineWalker(urwid.ListWalker):
         w.set_edit_text(text[:xpos] + s)
         w.set_edit_pos(xpos)
 
+    def insert_name_completion(self, name):
+        """Inserts the completed name into the editor text"""
+        w, ypos = self.get_focus()
+        w.insert_text(name)
+
     # tokenization
     def _compute_slice(self, pos, window, alltokens):
         llen = len(self.lines)
@@ -683,6 +699,7 @@ class MainDisplay(object):
         self.queries = deque(self.rc["queries"], maxlen=self.rc["max_queries"])
         self.replacements = deque(self.rc["replacements"],
                                   maxlen=self.rc["max_replacements"])
+        self.name_complete_options = deque()
 
     def load_rc(self):
         cacherc = json_rc_load('~/.cache/xo/rc.json')
@@ -799,6 +816,60 @@ class MainDisplay(object):
         flc = "{0}:{1[0]}:{1[1]}".format(self.save_name, self.walker.get_coords())
         ft[1][-1] = "{0: >{1}}".format(flc, max(ncol - 33, 0))
         self.status.original_widget.set_text(ft)
+
+    def insert_name_completion(self, name):
+        """Inserts the completed name into the editor text"""
+
+        # find the name completion in the deque of completions
+        completion = ''
+        for i in range(0, len(self.name_complete_options)):
+            if self.name_complete_options[i].name == name:
+                completion = self.name_complete_options[i].complete
+                break
+        # now that we found the completion insert it into the line editor
+        if completion != '':
+            self.walker.insert_name_completion(completion)
+
+    def get_name_complete_options(self):
+        """computes the best name completion and places into a dequeu"""
+        # the code below came from save_file function
+        newlines = []
+        tabsize = self.tabsize
+        must_retab = self.must_retab
+        walker = self.walker
+        for line in walker.lines:
+            # collect the text already stored in edit widgets
+            edit_text = line.edit_text
+            orig_text = line.original_text
+            if orig_text is None:
+                newline = retab(edit_text, tabsize) if must_retab else edit_text
+            elif sanitize_text(orig_text, tabsize) == edit_text:
+                newline = orig_text
+            else:
+                newline = retab(edit_text, tabsize) if must_retab else edit_text
+            newlines.append(ensure_endswith_newline(newline))
+
+        while walker.file is not None:  # grab remaining lines
+            newlines.append(ensure_endswith_newline(walker.read_next_line()))
+        newlines = [line.rstrip() + '\n' for line in newlines]
+
+        last_line = newlines[-1]
+        newlines[-1] = last_line[:-1] if last_line.endswith('\n') else last_line
+        # next convert newlines into a str separated by newlines
+        source = ''
+        for i in range(0, len(newlines)):
+            if len(newlines[i]) > 0: # edge case when empty blank line
+                if newlines[i][-1] == '\n':
+                    source += newlines[i]
+                else:
+                    source += newlines[i] + '\n'
+
+        line, column = self.walker.get_coords()
+        column -= 1
+        script = jedi.Script(source, line, column)
+        completions = script.completions()
+        self.name_complete_options.clear()
+        self.name_complete_options = deque(completions)
 
     def unhandled_keypress(self, k):
         """Where the main app handles keypresses."""
@@ -921,6 +992,18 @@ class MainDisplay(object):
             else:
                 self.view.contents["footer"] = (self.status, None)
                 self.view.focus_position = "body"
+        elif k == keybindings["name_complete"]:
+            curr_footer = self.view.contents["footer"][0]
+            if curr_footer is self.status:
+                self.get_name_complete_options()
+                # make a deque of name_complete_full_options
+                name_complete_full_options = deque()
+                for i in range(0, len(self.name_complete_options)):
+                    name_complete_full_options.append(self.name_complete_options[i].name)
+                self.view.contents["footer"] = (
+                    urwid.AttrMap(NameCompleteEditor(caption="name complete (up, down keys): ", edit_text="",
+                                  deq=name_complete_full_options), "foot"), None)
+                self.view.focus_position = "footer"
         else:
             self.reset_status()
             return
