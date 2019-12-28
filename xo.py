@@ -41,7 +41,12 @@ from pygments.lexers.python import PythonLexer, Python3Lexer
 from pygments.token import Token
 from pygments.filter import Filter
 from pygments.styles import get_all_styles
-import jedi
+
+# Jedi is optional import for name completion
+try:
+    import jedi
+except ImportError:
+    jedi = None
 
 __version__ = '0.3.2'
 
@@ -993,17 +998,29 @@ class MainDisplay(object):
                 self.view.contents["footer"] = (self.status, None)
                 self.view.focus_position = "body"
         elif k == keybindings["name_complete"]:
-            curr_footer = self.view.contents["footer"][0]
-            if curr_footer is self.status:
-                self.get_name_complete_options()
-                # make a deque of name_complete_full_options
-                name_complete_full_options = deque()
-                for i in range(0, len(self.name_complete_options)):
-                    name_complete_full_options.append(self.name_complete_options[i].name)
-                self.view.contents["footer"] = (
-                    urwid.AttrMap(NameCompleteEditor(caption="name complete (up, down keys): ", edit_text="",
-                                  deq=name_complete_full_options), "foot"), None)
-                self.view.focus_position = "footer"
+                if jedi is not None:
+                    curr_footer = self.view.contents["footer"][0]
+                    if curr_footer is self.status:
+                        self.get_name_complete_options()
+                        # make a deque of name_complete_full_options
+                        name_complete_full_options = deque()
+                        for i in range(0, len(self.name_complete_options)):
+                            name_complete_full_options.append(self.name_complete_options[i].name)
+                        self.view.contents["footer"] = (
+                            urwid.AttrMap(NameCompleteEditor(caption="name complete (up, down keys): ", edit_text="",
+                            deq=name_complete_full_options), "foot"), None)
+                        self.view.focus_position = "footer"
+                else: # jedi module not found display error
+                    curr_footer = self.view.contents["footer"][0]
+                    if curr_footer is self.status:
+                        self.view.contents["footer"] = (
+                            urwid.AttrMap(urwid.Text(("jedi python module not installed\n" +
+                                "name completion failed.\n" +
+                                "easiest method to install jedi is\n" +
+                                "\"pip3 install jedi\"\n" +
+                                "press ESC to continue")), "foot"), None)
+                        self.view.focus_position = "footer"
+
         else:
             self.reset_status()
             return
