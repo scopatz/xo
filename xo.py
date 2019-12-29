@@ -27,7 +27,6 @@ import io
 import sys
 import json
 import time
-import importlib.util
 from glob import glob
 from itertools import zip_longest
 from collections import deque
