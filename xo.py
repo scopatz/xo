@@ -27,12 +27,12 @@ import io
 import sys
 import json
 import time
+import importlib.util
 from glob import glob
 from itertools import zip_longest
 from collections import deque
 from collections.abc import Mapping, Sequence
 from argparse import ArgumentParser, RawDescriptionHelpFormatter, _StoreTrueAction
-
 import urwid
 import pygments.util
 import pygments_cache
@@ -41,12 +41,6 @@ from pygments.lexers.python import PythonLexer, Python3Lexer
 from pygments.token import Token
 from pygments.filter import Filter
 from pygments.styles import get_all_styles
-
-# Jedi is optional import for name completion
-try:
-    import jedi
-except ImportError:
-    jedi = None
 
 __version__ = '0.3.2'
 
@@ -690,6 +684,7 @@ class MainDisplay(object):
     def __init__(self):
         self.load_rc()
         self.set_keybindings()
+        self.jedi_imported_try = False
 
     def init_file(self, name):
         self.save_name = name
@@ -998,6 +993,16 @@ class MainDisplay(object):
                 self.view.contents["footer"] = (self.status, None)
                 self.view.focus_position = "body"
         elif k == keybindings["name_complete"]:
+                if self.jedi_imported_try == False: # this code perfoms a lazy import
+                    # lazy import is only done if it is needed the user pressed ctrl-n
+                    # if the jedi python module is not installed then the global jedi
+                    # variable is set to none producing an error message in footer
+                    global jedi
+                    try:
+                        import jedi
+                    except ImportError:
+                        jedi = None
+                    self.jedi_imported_try = True
                 if jedi is not None:
                     curr_footer = self.view.contents["footer"][0]
                     if curr_footer is self.status:
