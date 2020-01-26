@@ -11,3 +11,4 @@ $TAG_REMOTE = 'git@github.com:scopatz/xo.git'
 
 $GITHUB_ORG = 'scopatz'
 $GITHUB_REPO = 'xo'
+$PYPI_SIGN = False
