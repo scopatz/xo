@@ -1020,8 +1020,7 @@ class MainDisplay(object):
                         self.view.contents["footer"] = (
                             urwid.AttrMap(urwid.Text(("jedi python module not installed\n" +
                                 "name completion failed.\n" +
-                                "easiest method to install jedi is\n" +
-                                "\"pip3 install jedi\"\n" +
+                                "Please install with your favorite package manager.\n" +
                                 "press ESC to continue")), "foot"), None)
                         self.view.focus_position = "footer"
 
