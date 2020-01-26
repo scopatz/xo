@@ -4,6 +4,50 @@ xo Change Log
 
 .. current developments
 
+v0.3.3
+====================
+
+**Added:**
+
+
+* Optional name completion with the Jedi module (an awesome
+  autocompletion/static analysis library for Python).
+
+
+**Changed:**
+
+
+
+
+
+**Deprecated:**
+
+
+
+
+
+**Removed:**
+
+
+
+
+
+**Fixed:**
+
+* fixed row, column indicator on end key, arrow keys, page down, and
+start of new line
+
+* inconsistent handling of ctrl/meta + left and ctrl/meta + right
+  * ctrl+right used to be swapped with meta+right
+
+**Security:**
+
+
+
+
+
+
+
 v0.3.2
 ====================
 
